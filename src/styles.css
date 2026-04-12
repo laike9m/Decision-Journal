@@ -134,10 +134,35 @@ td[contenteditable="true"]:focus {
     border-radius: 4px;
 }
 
-#journal-table th:nth-child(4),
-#journal-table td:nth-child(4) {
+.col-rules-followed {
     width: 1%;
     white-space: nowrap;
+}
+
+.col-actions {
+    width: 1%;
+    white-space: nowrap;
+    text-align: right;
+}
+
+.col-date, .col-ticker {
+    width: 1%;
+    white-space: nowrap;
+}
+
+.date-picker {
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 0.25rem;
+    font-family: inherit;
+    font-size: inherit;
+    background: transparent;
+}
+
+.date-picker:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.1);
 }
 
 /* Select dropdown in table */

@@ -72,6 +72,7 @@ async function init() {
             const result = Papa.parse(content, { header: true, skipEmptyLines: true });
             const newData = result.data.map(row => ({
                 Date: row.Date || new Date().toISOString().split('T')[0],
+                Ticker: row.Ticker || '',
                 Action: row.Action || '',
                 Rules: row.Rules || '',
                 'Rules Followed': row['Rules Followed'] || 'Yes'
@@ -106,6 +107,7 @@ async function loadData() {
             // Ensure columns exist and fill defaults
             journalData = journalData.map(row => ({
                 Date: row.Date || new Date().toISOString().split('T')[0],
+                Ticker: row.Ticker || '',
                 Action: row.Action || '',
                 Rules: row.Rules || '',
                 'Rules Followed': row['Rules Followed'] || 'Yes'
@@ -114,6 +116,7 @@ async function loadData() {
             // Default row if file doesn't exist
             journalData = [{
                 Date: new Date().toISOString().split('T')[0],
+                Ticker: '',
                 Action: '',
                 Rules: '',
                 'Rules Followed': 'Yes'
@@ -145,10 +148,22 @@ function renderTable() {
         
         // Date
         const tdDate = document.createElement('td');
-        tdDate.contentEditable = true;
-        tdDate.textContent = row.Date;
-        tdDate.addEventListener('blur', () => updateCell(index, 'Date', tdDate.textContent));
+        tdDate.className = 'col-date';
+        const dateInput = document.createElement('input');
+        dateInput.type = 'date';
+        dateInput.value = row.Date;
+        dateInput.className = 'date-picker';
+        dateInput.addEventListener('change', () => updateCell(index, 'Date', dateInput.value));
+        tdDate.appendChild(dateInput);
         tr.appendChild(tdDate);
+        
+        // Ticker
+        const tdTicker = document.createElement('td');
+        tdTicker.className = 'col-ticker';
+        tdTicker.contentEditable = true;
+        tdTicker.textContent = row.Ticker || '';
+        tdTicker.addEventListener('blur', () => updateCell(index, 'Ticker', tdTicker.textContent));
+        tr.appendChild(tdTicker);
         
         // Action
         const tdAction = document.createElement('td');
@@ -166,6 +181,7 @@ function renderTable() {
         
         // Rules Followed (Select)
         const tdFollowed = document.createElement('td');
+        tdFollowed.className = 'col-rules-followed';
         const select = document.createElement('select');
         select.className = 'status-select';
         ['Yes', 'No'].forEach(opt => {
@@ -181,6 +197,7 @@ function renderTable() {
         
         // Actions
         const tdActions = document.createElement('td');
+        tdActions.className = 'col-actions';
         const deleteBtn = document.createElement('button');
         deleteBtn.className = 'delete-btn';
         deleteBtn.innerHTML = '🗑️';
@@ -207,6 +224,7 @@ async function updateCell(index, field, value) {
 async function addRow() {
     journalData.push({
         Date: new Date().toISOString().split('T')[0],
+        Ticker: '',
         Action: '',
         Rules: '',
         'Rules Followed': 'Yes'
@@ -224,6 +242,7 @@ async function deleteRow(index) {
         if (journalData.length === 0) {
             journalData.push({
                 Date: new Date().toISOString().split('T')[0],
+                Ticker: '',
                 Action: '',
                 Rules: '',
                 'Rules Followed': 'Yes'
