@@ -1,0 +1,30 @@
+{
+  "name": "decision-journal",
+  "version": "1.0.0",
+  "description": "A desktop application for tracking decisions.",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder"
+  },
+  "devDependencies": {
+    "electron": "^30.0.0",
+    "electron-builder": "^26.8.1"
+  },
+  "build": {
+    "appId": "com.laike9m.decisionjournal",
+    "mac": {
+      "category": "public.app-category.productivity",
+      "target": [
+        "dmg"
+      ]
+    },
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "src/**/*",
+      "package.json"
+    ]
+  }
+}

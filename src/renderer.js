@@ -1,0 +1,344 @@
+// State
+let csvPath = '';
+let journalData = [];
+let trendChart = null;
+
+// DOM Elements
+let tableBody;
+let addRowBtn;
+let statYes;
+let statNo;
+let statRate;
+let settingsBtn;
+let settingsModal;
+let closeModalBtn;
+let csvPathInput;
+let browseFileBtn;
+
+
+// Initialize
+async function init() {
+    tableBody = document.getElementById('table-body');
+    addRowBtn = document.getElementById('add-row-btn');
+    statYes = document.getElementById('stat-yes');
+    statNo = document.getElementById('stat-no');
+    statRate = document.getElementById('stat-rate');
+    settingsBtn = document.getElementById('settings-btn');
+    settingsModal = document.getElementById('settings-modal');
+    closeModalBtn = document.getElementById('close-modal-btn');
+    csvPathInput = document.getElementById('csv-path-input');
+    browseFileBtn = document.getElementById('browse-file-btn');
+
+
+    // Load saved path from localStorage or get default
+    csvPath = localStorage.getItem('csvPath');
+    if (!csvPath) {
+        csvPath = await window.electronAPI.getDefaultPath();
+        localStorage.setItem('csvPath', csvPath);
+    }
+    csvPathInput.value = csvPath;
+    
+
+
+    await loadData();
+    
+    // Event Listeners
+    addRowBtn.addEventListener('click', addRow);
+    settingsBtn.addEventListener('click', () => settingsModal.classList.add('active'));
+    closeModalBtn.addEventListener('click', () => settingsModal.classList.remove('active'));
+    
+    const titleBar = document.getElementById('title-bar');
+    titleBar.addEventListener('dblclick', () => {
+        window.electronAPI.toggleFullscreen();
+    });
+    
+    browseFileBtn.addEventListener('click', async () => {
+        const newPath = await window.electronAPI.selectFile();
+        if (newPath) {
+            csvPath = newPath;
+            csvPathInput.value = csvPath;
+            localStorage.setItem('csvPath', csvPath);
+            await loadData();
+        }
+    });
+
+
+
+    // Handle external file changes (Bi-directional sync)
+    window.electronAPI.onFileChanged(async (path) => {
+        console.log('File changed:', path);
+        const content = await window.electronAPI.readFile(csvPath);
+        if (content) {
+            const result = Papa.parse(content, { header: true, skipEmptyLines: true });
+            const newData = result.data.map(row => ({
+                Date: row.Date || new Date().toISOString().split('T')[0],
+                Action: row.Action || '',
+                Rules: row.Rules || '',
+                'Rules Followed': row['Rules Followed'] || 'Yes'
+            }));
+            
+            // Only update if data actually changed to avoid infinite loops
+            if (JSON.stringify(newData) !== JSON.stringify(journalData)) {
+                journalData = newData;
+                renderTable();
+                updateStats();
+                renderChart();
+            }
+        }
+    });
+
+    // Close modal when clicking outside
+    window.addEventListener('click', (e) => {
+        if (e.target === settingsModal) {
+            settingsModal.classList.remove('active');
+        }
+    });
+}
+
+// Load Data
+async function loadData() {
+    try {
+        const content = await window.electronAPI.readFile(csvPath);
+        if (content) {
+            const result = Papa.parse(content, { header: true, skipEmptyLines: true });
+            journalData = result.data;
+            
+            // Ensure columns exist and fill defaults
+            journalData = journalData.map(row => ({
+                Date: row.Date || new Date().toISOString().split('T')[0],
+                Action: row.Action || '',
+                Rules: row.Rules || '',
+                'Rules Followed': row['Rules Followed'] || 'Yes'
+            }));
+        } else {
+            // Default row if file doesn't exist
+            journalData = [{
+                Date: new Date().toISOString().split('T')[0],
+                Action: '',
+                Rules: '',
+                'Rules Followed': 'Yes'
+            }];
+            await saveData(); // Create the file
+        }
+        
+        renderTable();
+        updateStats();
+        renderChart();
+    } catch (error) {
+        console.error('Failed to load data:', error);
+        alert('Failed to load CSV file. Please check the path in settings.');
+    }
+}
+
+// Save Data
+async function saveData() {
+    const csv = Papa.unparse(journalData);
+    await window.electronAPI.writeFile(csvPath, csv);
+}
+
+// Render Table
+function renderTable() {
+    tableBody.innerHTML = '';
+    
+    journalData.forEach((row, index) => {
+        const tr = document.createElement('tr');
+        
+        // Date
+        const tdDate = document.createElement('td');
+        tdDate.contentEditable = true;
+        tdDate.textContent = row.Date;
+        tdDate.addEventListener('blur', () => updateCell(index, 'Date', tdDate.textContent));
+        tr.appendChild(tdDate);
+        
+        // Action
+        const tdAction = document.createElement('td');
+        tdAction.contentEditable = true;
+        tdAction.textContent = row.Action;
+        tdAction.addEventListener('blur', () => updateCell(index, 'Action', tdAction.textContent));
+        tr.appendChild(tdAction);
+        
+        // Rules
+        const tdRules = document.createElement('td');
+        tdRules.contentEditable = true;
+        tdRules.textContent = row.Rules;
+        tdRules.addEventListener('blur', () => updateCell(index, 'Rules', tdRules.textContent));
+        tr.appendChild(tdRules);
+        
+        // Rules Followed (Select)
+        const tdFollowed = document.createElement('td');
+        const select = document.createElement('select');
+        select.className = 'status-select';
+        ['Yes', 'No'].forEach(opt => {
+            const option = document.createElement('option');
+            option.value = opt;
+            option.textContent = opt;
+            if (opt === row['Rules Followed']) option.selected = true;
+            select.appendChild(option);
+        });
+        select.addEventListener('change', () => updateCell(index, 'Rules Followed', select.value));
+        tdFollowed.appendChild(select);
+        tr.appendChild(tdFollowed);
+        
+        // Actions
+        const tdActions = document.createElement('td');
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'delete-btn';
+        deleteBtn.innerHTML = '🗑️';
+        deleteBtn.title = 'Delete Row';
+        deleteBtn.addEventListener('click', () => deleteRow(index));
+        tdActions.appendChild(deleteBtn);
+        tr.appendChild(tdActions);
+        
+        tableBody.appendChild(tr);
+    });
+}
+
+// Update Cell
+async function updateCell(index, field, value) {
+    if (journalData[index][field] !== value) {
+        journalData[index][field] = value;
+        await saveData();
+        updateStats();
+        renderChart();
+    }
+}
+
+// Add Row
+async function addRow() {
+    journalData.push({
+        Date: new Date().toISOString().split('T')[0],
+        Action: '',
+        Rules: '',
+        'Rules Followed': 'Yes'
+    });
+    await saveData();
+    renderTable();
+    updateStats();
+    renderChart();
+}
+
+// Delete Row
+async function deleteRow(index) {
+    if (confirm('Are you sure you want to delete this row?')) {
+        journalData.splice(index, 1);
+        if (journalData.length === 0) {
+            journalData.push({
+                Date: new Date().toISOString().split('T')[0],
+                Action: '',
+                Rules: '',
+                'Rules Followed': 'Yes'
+            });
+        }
+        await saveData();
+        renderTable();
+        updateStats();
+        renderChart();
+    }
+}
+
+// Pure functions for logic (testable)
+function calculateStats(data) {
+    const validRows = data.filter(row => row.Action && row.Action.trim() !== '');
+    if (validRows.length === 0) return { yes: 0, no: 0, rate: 0 };
+    
+    const yes = validRows.filter(row => row['Rules Followed'] === 'Yes').length;
+    const no = validRows.filter(row => row['Rules Followed'] === 'No').length;
+    const total = yes + no;
+    const rate = total > 0 ? Math.round((yes / total) * 100) : 0;
+    return { yes, no, rate };
+}
+
+function calculateChartData(data) {
+    const validRows = data.filter(row => row.Action && row.Action.trim() !== '');
+    if (validRows.length === 0) return { labels: [], data: [] };
+    
+    const sortedRows = [...validRows].sort((a, b) => new Date(a.Date) - new Date(b.Date));
+    const labels = [];
+    const chartData = [];
+    let cumulativeYes = 0;
+    
+    sortedRows.forEach((row, index) => {
+        labels.push(row.Date);
+        if (row['Rules Followed'] === 'Yes') {
+            cumulativeYes++;
+        }
+        const rate = (cumulativeYes / (index + 1)) * 100;
+        chartData.push(rate);
+    });
+    return { labels, data: chartData };
+}
+
+// Update Stats
+function updateStats() {
+    const stats = calculateStats(journalData);
+    statYes.textContent = stats.yes;
+    statNo.textContent = stats.no;
+    statRate.textContent = `${stats.rate}%`;
+}
+
+// Render Chart
+function renderChart() {
+    const { labels, data } = calculateChartData(journalData);
+    
+    if (labels.length === 0) {
+        if (trendChart) {
+            trendChart.destroy();
+            trendChart = null;
+        }
+        return;
+    }
+    
+    const ctx = document.getElementById('trend-chart').getContext('2d');
+    
+    if (trendChart) {
+        trendChart.data.labels = labels;
+        trendChart.data.datasets[0].data = data;
+        trendChart.update();
+    } else {
+        trendChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Yes Rate (%)',
+                    data: data,
+                    borderColor: '#4f46e5',
+                    backgroundColor: 'rgba(79, 70, 229, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.1,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: {
+                            callback: function(value) {
+                                return value + '%';
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        });
+    }
+}
+
+// Run if in browser
+if (typeof document !== 'undefined') {
+    init();
+}
+
+// Export for testing in Node
+if (typeof module !== 'undefined') {
+    module.exports = { calculateStats, calculateChartData };
+}
