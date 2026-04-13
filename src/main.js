@@ -1,4 +1,5 @@
 const { app, BrowserWindow, ipcMain, dialog } = require('electron');
+app.name = 'Decision Journal';
 const path = require('path');
 const fs = require('fs');
 
@@ -56,6 +57,30 @@ function watchFile(filePath) {
 // IPC Handlers
 ipcMain.handle('get-default-path', () => {
   return path.join(app.getPath('home'), 'decision_journal.csv');
+});
+
+ipcMain.handle('get-config', () => {
+  const configPath = path.join(app.getPath('userData'), 'config.json');
+  if (fs.existsSync(configPath)) {
+    try {
+      return JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+    } catch (e) {
+      console.error('Error parsing config:', e);
+    }
+  }
+  return {};
+});
+
+ipcMain.handle('save-config', (event, csvPath) => {
+  console.log('save-config received csvPath:', csvPath);
+  const configPath = path.join(app.getPath('userData'), 'config.json');
+  const dir = path.dirname(configPath);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+  const data = JSON.stringify({ csvPath }, null, 2);
+  fs.writeFileSync(configPath, data, 'utf-8');
+  return true;
 });
 
 ipcMain.handle('read-file', async (event, filePath) => {

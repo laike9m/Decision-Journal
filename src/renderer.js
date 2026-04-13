@@ -2,6 +2,7 @@
 let csvPath = '';
 let journalData = [];
 let trendChart = null;
+let currentSort = { field: null, ascending: true };
 
 // DOM Elements
 let tableBody;
@@ -30,22 +31,17 @@ async function init() {
     browseFileBtn = document.getElementById('browse-file-btn');
 
 
-    // Load saved path from localStorage or get default
-    csvPath = localStorage.getItem('csvPath');
-    if (!csvPath) {
-        csvPath = await window.electronAPI.getDefaultPath();
-        localStorage.setItem('csvPath', csvPath);
-    }
-    csvPathInput.value = csvPath;
-    
-
-
-    await loadData();
-    
     // Event Listeners
     addRowBtn.addEventListener('click', addRow);
     settingsBtn.addEventListener('click', () => settingsModal.classList.add('active'));
     closeModalBtn.addEventListener('click', () => settingsModal.classList.remove('active'));
+    
+    // Header click listeners for sorting
+    const headers = document.querySelectorAll('#journal-table th[data-field]');
+    headers.forEach(header => {
+        header.style.cursor = 'pointer';
+        header.addEventListener('click', () => sortData(header.getAttribute('data-field')));
+    });
     
     const titleBar = document.getElementById('title-bar');
     titleBar.addEventListener('dblclick', () => {
@@ -57,10 +53,30 @@ async function init() {
         if (newPath) {
             csvPath = newPath;
             csvPathInput.value = csvPath;
-            localStorage.setItem('csvPath', csvPath);
+            await window.electronAPI.saveConfig(csvPath);
             await loadData();
         }
     });
+
+    // Load saved path from config or get default
+    try {
+        const config = await window.electronAPI.getConfig();
+        csvPath = config.csvPath;
+        if (!csvPath) {
+            csvPath = await window.electronAPI.getDefaultPath();
+            await window.electronAPI.saveConfig(csvPath);
+        }
+        csvPathInput.value = csvPath;
+        await loadData();
+    } catch (e) {
+        console.error('Failed to initialize data:', e);
+        // Fallback to default path if everything fails
+        if (!csvPath) {
+            csvPath = await window.electronAPI.getDefaultPath();
+            csvPathInput.value = csvPath;
+            await loadData();
+        }
+    }
 
 
 
@@ -69,12 +85,14 @@ async function init() {
         console.log('File changed:', path);
         const content = await window.electronAPI.readFile(csvPath);
         if (content) {
-            const result = Papa.parse(content, { header: true, skipEmptyLines: true });
+            const cleanContent = content.replace(/^\uFEFF/, '');
+            const result = Papa.parse(cleanContent, { header: true, skipEmptyLines: true });
             const newData = result.data.map(row => ({
                 Date: row.Date || new Date().toISOString().split('T')[0],
                 Ticker: row.Ticker || '',
                 Action: row.Action || '',
                 Rules: row.Rules || '',
+                '后续走势': row['后续走势'] || '',
                 'Rules Followed': row['Rules Followed'] || 'Yes'
             }));
             
@@ -101,7 +119,8 @@ async function loadData() {
     try {
         const content = await window.electronAPI.readFile(csvPath);
         if (content) {
-            const result = Papa.parse(content, { header: true, skipEmptyLines: true });
+            const cleanContent = content.replace(/^\uFEFF/, '');
+            const result = Papa.parse(cleanContent, { header: true, skipEmptyLines: true });
             journalData = result.data;
             
             // Ensure columns exist and fill defaults
@@ -110,6 +129,7 @@ async function loadData() {
                 Ticker: row.Ticker || '',
                 Action: row.Action || '',
                 Rules: row.Rules || '',
+                '后续走势': row['后续走势'] || '',
                 'Rules Followed': row['Rules Followed'] || 'Yes'
             }));
         } else {
@@ -119,17 +139,21 @@ async function loadData() {
                 Ticker: '',
                 Action: '',
                 Rules: '',
+                '后续走势': '',
                 'Rules Followed': 'Yes'
             }];
             await saveData(); // Create the file
         }
+        
+        // Default sort by Date descending (without showing arrow)
+        journalData.sort((a, b) => new Date(b.Date) - new Date(a.Date));
         
         renderTable();
         updateStats();
         renderChart();
     } catch (error) {
         console.error('Failed to load data:', error);
-        alert('Failed to load CSV file. Please check the path in settings.');
+        alert(`Failed to load CSV file: ${error.message}`);
     }
 }
 
@@ -179,6 +203,13 @@ function renderTable() {
         tdRules.addEventListener('blur', () => updateCell(index, 'Rules', tdRules.textContent));
         tr.appendChild(tdRules);
         
+        // 后续走势
+        const tdTrend = document.createElement('td');
+        tdTrend.contentEditable = true;
+        tdTrend.textContent = row['后续走势'] || '';
+        tdTrend.addEventListener('blur', () => updateCell(index, '后续走势', tdTrend.textContent));
+        tr.appendChild(tdTrend);
+        
         // Rules Followed (Select)
         const tdFollowed = document.createElement('td');
         tdFollowed.className = 'col-rules-followed';
@@ -187,7 +218,7 @@ function renderTable() {
         ['Yes', 'No'].forEach(opt => {
             const option = document.createElement('option');
             option.value = opt;
-            option.textContent = opt;
+            option.textContent = opt === 'Yes' ? '✅ Yes' : '❌ No';
             if (opt === row['Rules Followed']) option.selected = true;
             select.appendChild(option);
         });
@@ -220,6 +251,52 @@ async function updateCell(index, field, value) {
     }
 }
 
+// Sort Data
+function sortData(field) {
+    if (currentSort.field === field) {
+        currentSort.ascending = !currentSort.ascending;
+    } else {
+        currentSort.field = field;
+        currentSort.ascending = true;
+    }
+    
+    journalData.sort((a, b) => {
+        let valA = a[field] || '';
+        let valB = b[field] || '';
+        
+        if (field === 'Date') {
+            return currentSort.ascending ? new Date(valA) - new Date(valB) : new Date(valB) - new Date(valA);
+        }
+        
+        valA = valA.toLowerCase();
+        valB = valB.toLowerCase();
+        
+        if (valA < valB) return currentSort.ascending ? -1 : 1;
+        if (valA > valB) return currentSort.ascending ? 1 : -1;
+        return 0;
+    });
+    
+    renderTable();
+    updateHeaderUI();
+}
+
+// Update Header UI
+function updateHeaderUI() {
+    const headers = document.querySelectorAll('#journal-table th[data-field]');
+    headers.forEach(header => {
+        const field = header.getAttribute('data-field');
+        if (!field) return;
+        
+        // Remove existing arrows
+        let text = header.textContent.replace(/ [▲▼]$/, '');
+        
+        if (field === currentSort.field) {
+            text += currentSort.ascending ? ' ▲' : ' ▼';
+        }
+        header.textContent = text;
+    });
+}
+
 // Add Row
 async function addRow() {
     journalData.push({
@@ -227,6 +304,7 @@ async function addRow() {
         Ticker: '',
         Action: '',
         Rules: '',
+        '后续走势': '',
         'Rules Followed': 'Yes'
     });
     await saveData();
@@ -245,6 +323,7 @@ async function deleteRow(index) {
                 Ticker: '',
                 Action: '',
                 Rules: '',
+                '后续走势': '',
                 'Rules Followed': 'Yes'
             });
         }
