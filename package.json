@@ -1,11 +1,13 @@
 {
   "name": "decision-journal",
+  "productName": "Decision Journal",
   "version": "1.0.0",
   "description": "A desktop application for tracking decisions.",
   "main": "src/main.js",
   "scripts": {
     "start": "electron .",
-    "build": "electron-builder"
+    "build": "electron-builder",
+    "postinstall": "node scripts/patch-electron.js"
   },
   "devDependencies": {
     "electron": "^30.0.0",
