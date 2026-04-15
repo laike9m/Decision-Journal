@@ -4,6 +4,13 @@ let journalData = [];
 let trendChart = null;
 let currentSort = { field: null, ascending: true };
 
+// Scoring table state
+let scoringCsvPath = '';
+let scoringData = [];
+let scoringSort = { field: null, ascending: true };
+const SCORING_FIELDS = ['代码', '总分', 'Time', 'Follow', 'RS', 'Z rank', 'Z hold', 'Chaikin', 'Call', 'Setup', 'Vol', '题材', '坏消息', '好消息', '情绪'];
+const SCORING_NUM_FIELDS = ['总分', 'Follow', 'RS', 'Z rank', 'Z hold', 'Chaikin', 'Call', 'Setup', 'Vol', '题材', '坏消息', '好消息', '情绪'];
+
 // DOM Elements
 let tableBody;
 let addRowBtn;
@@ -15,6 +22,12 @@ let settingsModal;
 let closeModalBtn;
 let csvPathInput;
 let browseFileBtn;
+
+// Scoring DOM Elements
+let scoringTableBody;
+let scoringAddRowBtn;
+let scoringCsvPathInput;
+let scoringBrowseFileBtn;
 
 
 // Initialize
@@ -29,6 +42,12 @@ async function init() {
     closeModalBtn = document.getElementById('close-modal-btn');
     csvPathInput = document.getElementById('csv-path-input');
     browseFileBtn = document.getElementById('browse-file-btn');
+
+    // Scoring DOM
+    scoringTableBody = document.getElementById('scoring-table-body');
+    scoringAddRowBtn = document.getElementById('scoring-add-row-btn');
+    scoringCsvPathInput = document.getElementById('scoring-csv-path-input');
+    scoringBrowseFileBtn = document.getElementById('scoring-browse-file-btn');
 
 
     // Event Listeners
@@ -53,21 +72,65 @@ async function init() {
         if (newPath) {
             csvPath = newPath;
             csvPathInput.value = csvPath;
-            await window.electronAPI.saveConfig(csvPath);
+            await window.electronAPI.saveConfig(csvPath, scoringCsvPath);
             await loadData();
         }
+    });
+
+    // Scoring event listeners
+    scoringAddRowBtn.addEventListener('click', addScoringRow);
+
+    scoringBrowseFileBtn.addEventListener('click', async () => {
+        const newPath = await window.electronAPI.selectFile();
+        if (newPath) {
+            scoringCsvPath = newPath;
+            scoringCsvPathInput.value = scoringCsvPath;
+            await window.electronAPI.saveConfig(csvPath, scoringCsvPath);
+            await loadScoringData();
+        }
+    });
+
+    // Scoring table header sorting
+    const scoringHeaders = document.querySelectorAll('#scoring-table th[data-scoring-field]');
+    scoringHeaders.forEach(header => {
+        header.style.cursor = 'pointer';
+        header.addEventListener('click', () => sortScoringData(header.getAttribute('data-scoring-field')));
+    });
+
+    // Tab switching
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    tabBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            // Remove active from all tabs and contents
+            tabBtns.forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            // Activate clicked tab
+            btn.classList.add('active');
+            const tabId = 'tab-' + btn.getAttribute('data-tab');
+            document.getElementById(tabId).classList.add('active');
+        });
     });
 
     // Load saved path from config or get default
     try {
         const config = await window.electronAPI.getConfig();
         csvPath = config.csvPath;
+        scoringCsvPath = config.scoringCsvPath || '';
         if (!csvPath) {
             csvPath = await window.electronAPI.getDefaultPath();
-            await window.electronAPI.saveConfig(csvPath);
+            await window.electronAPI.saveConfig(csvPath, scoringCsvPath);
+        }
+        if (!scoringCsvPath) {
+            // Default scoring CSV in same directory as journal CSV
+            const parts = csvPath.split('/');
+            parts.pop();
+            scoringCsvPath = parts.join('/') + '/scoring_table.csv';
+            await window.electronAPI.saveConfig(csvPath, scoringCsvPath);
         }
         csvPathInput.value = csvPath;
+        scoringCsvPathInput.value = scoringCsvPath;
         await loadData();
+        await loadScoringData();
     } catch (e) {
         console.error('Failed to initialize data:', e);
         // Fallback to default path if everything fails
@@ -83,25 +146,38 @@ async function init() {
     // Handle external file changes (Bi-directional sync)
     window.electronAPI.onFileChanged(async (path) => {
         console.log('File changed:', path);
-        const content = await window.electronAPI.readFile(csvPath);
-        if (content) {
-            const cleanContent = content.replace(/^\uFEFF/, '');
-            const result = Papa.parse(cleanContent, { header: true, skipEmptyLines: true });
-            const newData = result.data.map(row => ({
-                Date: row.Date || new Date().toISOString().split('T')[0],
-                Ticker: row.Ticker || '',
-                Action: row.Action || '',
-                Rules: row.Rules || '',
-                '后续走势': row['后续走势'] || '',
-                'Rules Followed': row['Rules Followed'] || 'Yes'
-            }));
-            
-            // Only update if data actually changed to avoid infinite loops
-            if (JSON.stringify(newData) !== JSON.stringify(journalData)) {
-                journalData = newData;
-                renderTable();
-                updateStats();
-                renderChart();
+        if (path === csvPath) {
+            const content = await window.electronAPI.readFile(csvPath);
+            if (content) {
+                const cleanContent = content.replace(/^\uFEFF/, '');
+                const result = Papa.parse(cleanContent, { header: true, skipEmptyLines: true });
+                const newData = result.data.map(row => ({
+                    Date: row.Date || new Date().toISOString().split('T')[0],
+                    Ticker: row.Ticker || '',
+                    Action: row.Action || '',
+                    Rules: row.Rules || '',
+                    '后续走势': row['后续走势'] || '',
+                    'Rules Followed': row['Rules Followed'] || 'Yes'
+                }));
+                
+                // Only update if data actually changed to avoid infinite loops
+                if (JSON.stringify(newData) !== JSON.stringify(journalData)) {
+                    journalData = newData;
+                    renderTable();
+                    updateStats();
+                    renderChart();
+                }
+            }
+        } else if (path === scoringCsvPath) {
+            const content = await window.electronAPI.readFile(scoringCsvPath);
+            if (content) {
+                const cleanContent = content.replace(/^\uFEFF/, '');
+                const result = Papa.parse(cleanContent, { header: true, skipEmptyLines: true });
+                const newData = result.data.map(row => makeScoringRow(row));
+                if (JSON.stringify(newData) !== JSON.stringify(scoringData)) {
+                    scoringData = newData;
+                    renderScoringTable();
+                }
             }
         }
     });
@@ -113,6 +189,10 @@ async function init() {
         }
     });
 }
+
+// ================================
+// Decision Journal functions
+// ================================
 
 // Load Data
 async function loadData() {
@@ -430,6 +510,221 @@ function renderChart() {
         });
     }
 }
+
+// ================================
+// Scoring Table (打分表) functions
+// ================================
+
+function makeScoringRow(row = {}) {
+    const result = {};
+    SCORING_FIELDS.forEach(field => {
+        result[field] = row[field] !== undefined ? String(row[field]) : '';
+    });
+    // Default Time to today if empty on new rows
+    if (!result['Time'] && !row['Time']) {
+        const now = new Date();
+        result['Time'] = `${now.getMonth() + 1}/${now.getDate()}`;
+    }
+    return result;
+}
+
+async function loadScoringData() {
+    try {
+        const content = await window.electronAPI.readFile(scoringCsvPath);
+        if (content) {
+            const cleanContent = content.replace(/^\uFEFF/, '');
+            const result = Papa.parse(cleanContent, { header: true, skipEmptyLines: true });
+            scoringData = result.data.map(row => makeScoringRow(row));
+        } else {
+            scoringData = [makeScoringRow()];
+            await saveScoringData();
+        }
+
+        // Default sort by Time descending
+        scoringData.sort((a, b) => {
+            return compareScoringTime(b['Time'], a['Time']);
+        });
+
+        renderScoringTable();
+    } catch (error) {
+        console.error('Failed to load scoring data:', error);
+    }
+}
+
+function compareScoringTime(a, b) {
+    // Parse "M/D" format, assuming current year
+    const parseTime = (t) => {
+        if (!t) return 0;
+        const parts = t.split('/');
+        if (parts.length !== 2) return 0;
+        const month = parseInt(parts[0], 10);
+        const day = parseInt(parts[1], 10);
+        return month * 100 + day;
+    };
+    return parseTime(a) - parseTime(b);
+}
+
+async function saveScoringData() {
+    const csv = Papa.unparse(scoringData, { columns: SCORING_FIELDS });
+    await window.electronAPI.writeFile(scoringCsvPath, csv);
+}
+
+function renderScoringTable() {
+    scoringTableBody.innerHTML = '';
+
+    scoringData.forEach((row, index) => {
+        const tr = document.createElement('tr');
+
+        SCORING_FIELDS.forEach(field => {
+            const td = document.createElement('td');
+
+            if (field === '代码') {
+                td.className = 'col-scoring-code';
+                td.contentEditable = true;
+                td.textContent = row[field] || '';
+                td.addEventListener('blur', () => updateScoringCell(index, field, td.textContent));
+            } else if (field === '总分') {
+                td.className = 'col-scoring-num';
+                // Total is auto-calculated, but also editable as override
+                const total = calculateScoringTotal(row);
+                td.textContent = total;
+                td.classList.add('score-total');
+                if (total >= 6) {
+                    td.classList.add('score-high');
+                } else if (total >= 4) {
+                    td.classList.add('score-medium');
+                } else {
+                    td.classList.add('score-low');
+                }
+            } else if (field === 'Time') {
+                td.className = 'col-scoring-time';
+                td.contentEditable = true;
+                td.textContent = row[field] || '';
+                td.addEventListener('blur', () => updateScoringCell(index, field, td.textContent));
+            } else {
+                // Numeric scoring fields
+                td.className = 'col-scoring-num';
+                td.contentEditable = true;
+                const val = parseFloat(row[field]);
+                td.textContent = row[field] || '';
+                if (!isNaN(val)) {
+                    if (val === 1 || val === 1.5) td.classList.add('score-green');
+                    else if (val === 0.5) td.classList.add('score-orange');
+                    else if (val === 0) td.classList.add('score-zero');
+                    else if (val === -0.5) td.classList.add('score-light-red');
+                    else if (val <= -1) td.classList.add('score-deep-red');
+                }
+                td.addEventListener('blur', () => {
+                    updateScoringCell(index, field, td.textContent);
+                });
+            }
+
+            tr.appendChild(td);
+        });
+
+        // Delete button
+        const tdActions = document.createElement('td');
+        tdActions.className = 'col-actions';
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'delete-btn';
+        deleteBtn.innerHTML = '🗑️';
+        deleteBtn.title = 'Delete Row';
+        deleteBtn.addEventListener('click', () => deleteScoringRow(index));
+        tdActions.appendChild(deleteBtn);
+        tr.appendChild(tdActions);
+
+        scoringTableBody.appendChild(tr);
+    });
+}
+
+function calculateScoringTotal(row) {
+    let total = 0;
+    SCORING_NUM_FIELDS.forEach(field => {
+        if (field === '总分') return; // skip total itself
+        const val = parseFloat(row[field]);
+        if (!isNaN(val)) total += val;
+    });
+    return total;
+}
+
+async function updateScoringCell(index, field, value) {
+    const trimmed = value.trim();
+    if (scoringData[index][field] !== trimmed) {
+        scoringData[index][field] = trimmed;
+        // Recalculate total
+        scoringData[index]['总分'] = String(calculateScoringTotal(scoringData[index]));
+        await saveScoringData();
+        renderScoringTable();
+    }
+}
+
+async function addScoringRow() {
+    scoringData.unshift(makeScoringRow());
+    await saveScoringData();
+    renderScoringTable();
+}
+
+async function deleteScoringRow(index) {
+    if (confirm('确定删除这行吗？')) {
+        scoringData.splice(index, 1);
+        if (scoringData.length === 0) {
+            scoringData.push(makeScoringRow());
+        }
+        await saveScoringData();
+        renderScoringTable();
+    }
+}
+
+function sortScoringData(field) {
+    if (scoringSort.field === field) {
+        scoringSort.ascending = !scoringSort.ascending;
+    } else {
+        scoringSort.field = field;
+        scoringSort.ascending = true;
+    }
+
+    scoringData.sort((a, b) => {
+        let valA = a[field] || '';
+        let valB = b[field] || '';
+
+        if (field === 'Time') {
+            const cmp = compareScoringTime(valA, valB);
+            return scoringSort.ascending ? cmp : -cmp;
+        }
+
+        // Try numeric comparison for scoring fields
+        const numA = parseFloat(valA);
+        const numB = parseFloat(valB);
+        if (!isNaN(numA) && !isNaN(numB)) {
+            return scoringSort.ascending ? numA - numB : numB - numA;
+        }
+
+        valA = valA.toLowerCase();
+        valB = valB.toLowerCase();
+        if (valA < valB) return scoringSort.ascending ? -1 : 1;
+        if (valA > valB) return scoringSort.ascending ? 1 : -1;
+        return 0;
+    });
+
+    renderScoringTable();
+    updateScoringHeaderUI();
+}
+
+function updateScoringHeaderUI() {
+    const headers = document.querySelectorAll('#scoring-table th[data-scoring-field]');
+    headers.forEach(header => {
+        const field = header.getAttribute('data-scoring-field');
+        if (!field) return;
+
+        let text = header.textContent.replace(/ [▲▼]$/, '');
+
+        if (field === scoringSort.field) {
+            text += scoringSort.ascending ? ' ▲' : ' ▼';
+        }
+        header.textContent = text;
+    });
+}
+
 
 // Run if in browser
 if (typeof document !== 'undefined') {

@@ -71,14 +71,14 @@ ipcMain.handle('get-config', () => {
   return {};
 });
 
-ipcMain.handle('save-config', (event, csvPath) => {
-  console.log('save-config received csvPath:', csvPath);
+ipcMain.handle('save-config', (event, csvPath, scoringCsvPath) => {
+  console.log('save-config received csvPath:', csvPath, 'scoringCsvPath:', scoringCsvPath);
   const configPath = path.join(app.getPath('userData'), 'config.json');
   const dir = path.dirname(configPath);
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
   }
-  const data = JSON.stringify({ csvPath }, null, 2);
+  const data = JSON.stringify({ csvPath, scoringCsvPath }, null, 2);
   fs.writeFileSync(configPath, data, 'utf-8');
   return true;
 });

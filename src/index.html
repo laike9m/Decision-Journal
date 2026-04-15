@@ -25,63 +25,105 @@
             </div>
         </header>
 
+        <!-- Tab Navigation -->
+        <nav class="tab-nav">
+            <button class="tab-btn active" data-tab="journal">📓 Decision Journal</button>
+            <button class="tab-btn" data-tab="scoring">📊 打分表</button>
+        </nav>
 
+        <!-- Tab: Decision Journal -->
+        <main id="tab-journal" class="tab-content active">
+            <div class="main-content">
+                <!-- Left Column: Table -->
+                <section class="table-section">
+                    <div class="table-container">
+                        <table id="journal-table">
+                            <thead>
+                                <tr>
+                                    <th class="col-date" data-field="Date">Date</th>
+                                    <th class="col-ticker" data-field="Ticker">Ticker</th>
+                                    <th data-field="Action">Action</th>
+                                    <th data-field="Rules">Rules</th>
+                                    <th data-field="后续走势">后续走势</th>
+                                    <th class="col-rules-followed" data-field="Rules Followed">Rules Followed</th>
+                                    <th class="col-actions"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-body">
+                                <!-- Rows will be inserted here dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="table-actions">
+                        <button id="add-row-btn" class="primary-btn">＋ Add Row</button>
+                    </div>
+                </section>
 
-        <!-- Main Content -->
-        <main class="main-content">
-            <!-- Left Column: Table -->
-            <section class="table-section">
-                <div class="table-container">
-                    <table id="journal-table">
+                <!-- Right Column: Stats & Chart -->
+                <section class="sidebar-section">
+                    <!-- Stats -->
+                    <div class="stats-container">
+                        <h2>📊 Summary</h2>
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <div class="stat-label">Yes</div>
+                                <div id="stat-yes" class="stat-value text-success">0</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">No</div>
+                                <div id="stat-no" class="stat-value text-danger">0</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">Rate</div>
+                                <div id="stat-rate" class="stat-value text-primary">0%</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Chart -->
+                    <div class="chart-container">
+                        <h2>📈 Compliance Trend</h2>
+                        <div class="chart-wrapper">
+                            <canvas id="trend-chart"></canvas>
+                        </div>
+                        <p class="caption">Cumulative "Yes" rate over entries, ordered chronologically.</p>
+                    </div>
+                </section>
+            </div>
+        </main>
+
+        <!-- Tab: 打分表 (Scoring Table) -->
+        <main id="tab-scoring" class="tab-content">
+            <section class="table-section scoring-section">
+                <div class="table-container scoring-table-container">
+                    <table id="scoring-table">
                         <thead>
                             <tr>
-                                <th class="col-date" data-field="Date">Date</th>
-                                <th class="col-ticker" data-field="Ticker">Ticker</th>
-                                <th data-field="Action">Action</th>
-                                <th data-field="Rules">Rules</th>
-                                <th data-field="后续走势">后续走势</th>
-                                <th class="col-rules-followed" data-field="Rules Followed">Rules Followed</th>
+                                <th class="col-scoring-code" data-scoring-field="代码">代码</th>
+                                <th class="col-scoring-num" data-scoring-field="总分">总分</th>
+                                <th class="col-scoring-time" data-scoring-field="Time">Time</th>
+                                <th class="col-scoring-num" data-scoring-field="Follow">Follow</th>
+                                <th class="col-scoring-num" data-scoring-field="RS">RS</th>
+                                <th class="col-scoring-num" data-scoring-field="Z rank">Z rank</th>
+                                <th class="col-scoring-num" data-scoring-field="Z hold">Z hold</th>
+                                <th class="col-scoring-num" data-scoring-field="Chaikin">Chaikin</th>
+                                <th class="col-scoring-num" data-scoring-field="Call">Call</th>
+                                <th class="col-scoring-num" data-scoring-field="Setup">Setup</th>
+                                <th class="col-scoring-num" data-scoring-field="Vol">Vol</th>
+                                <th class="col-scoring-num" data-scoring-field="题材">题材</th>
+                                <th class="col-scoring-num" data-scoring-field="坏消息">坏消息</th>
+                                <th class="col-scoring-num" data-scoring-field="好消息">好消息</th>
+                                <th class="col-scoring-num" data-scoring-field="情绪">情绪</th>
                                 <th class="col-actions"></th>
                             </tr>
                         </thead>
-                        <tbody id="table-body">
+                        <tbody id="scoring-table-body">
                             <!-- Rows will be inserted here dynamically -->
                         </tbody>
                     </table>
                 </div>
                 <div class="table-actions">
-                    <button id="add-row-btn" class="primary-btn">＋ Add Row</button>
-                </div>
-            </section>
-
-            <!-- Right Column: Stats & Chart -->
-            <section class="sidebar-section">
-                <!-- Stats -->
-                <div class="stats-container">
-                    <h2>📊 Summary</h2>
-                    <div class="stats-grid">
-                        <div class="stat-card">
-                            <div class="stat-label">Yes</div>
-                            <div id="stat-yes" class="stat-value text-success">0</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-label">No</div>
-                            <div id="stat-no" class="stat-value text-danger">0</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-label">Rate</div>
-                            <div id="stat-rate" class="stat-value text-primary">0%</div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Chart -->
-                <div class="chart-container">
-                    <h2>📈 Compliance Trend</h2>
-                    <div class="chart-wrapper">
-                        <canvas id="trend-chart"></canvas>
-                    </div>
-                    <p class="caption">Cumulative "Yes" rate over entries, ordered chronologically.</p>
+                    <button id="scoring-add-row-btn" class="primary-btn">＋ Add Row</button>
                 </div>
             </section>
         </main>
@@ -95,10 +137,18 @@
                 </div>
                 <div class="modal-body">
                     <div class="form-group">
-                        <label for="csv-path-input">📂 CSV File Path</label>
+                        <label for="csv-path-input">📂 Decision Journal CSV</label>
                         <div class="input-group">
                             <input type="text" id="csv-path-input" readonly>
                             <button id="browse-file-btn" class="secondary-btn">Browse File</button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="scoring-csv-path-input">📂 打分表 CSV</label>
+                        <div class="input-group">
+                            <input type="text" id="scoring-csv-path-input" readonly>
+                            <button id="scoring-browse-file-btn" class="secondary-btn">Browse File</button>
                         </div>
                     </div>
 
