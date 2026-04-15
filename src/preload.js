@@ -9,5 +9,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onFileChanged: (callback) => ipcRenderer.on('file-changed', (event, path) => callback(path)),
   toggleFullscreen: () => ipcRenderer.invoke('toggle-fullscreen'),
   getConfig: () => ipcRenderer.invoke('get-config'),
-  saveConfig: (csvPath, scoringCsvPath) => ipcRenderer.invoke('save-config', csvPath, scoringCsvPath)
+  saveConfig: (csvPath, scoringCsvPath) => ipcRenderer.invoke('save-config', csvPath, scoringCsvPath),
+  onToggleFind: (callback) => ipcRenderer.on('toggle-find', () => callback())
 });

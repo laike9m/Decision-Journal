@@ -17,6 +17,14 @@
 <body>
     <div class="app-container">
         <div id="title-bar"></div>
+        <!-- Find Bar -->
+        <div id="find-bar" class="find-bar" style="display: none;">
+            <input type="text" id="find-input" placeholder="Search…" autocomplete="off">
+            <span id="find-match-count" class="find-match-count"></span>
+            <button id="find-prev" class="find-nav-btn" title="Previous">▲</button>
+            <button id="find-next" class="find-nav-btn" title="Next">▼</button>
+            <button id="find-close" class="find-close-btn" title="Close">✕</button>
+        </div>
         <!-- Header -->
         <header class="app-header">
             <h1 id="app-title">📓 Decision Journal</h1>
@@ -95,35 +103,35 @@
         <!-- Tab: 打分表 (Scoring Table) -->
         <main id="tab-scoring" class="tab-content">
             <section class="table-section scoring-section">
-                <div class="table-container scoring-table-container">
-                    <table id="scoring-table">
-                        <thead>
-                            <tr>
-                                <th class="col-scoring-code" data-scoring-field="代码">代码</th>
-                                <th class="col-scoring-num" data-scoring-field="总分">总分</th>
-                                <th class="col-scoring-time" data-scoring-field="Time">Time</th>
-                                <th class="col-scoring-num" data-scoring-field="Follow">Follow</th>
-                                <th class="col-scoring-num" data-scoring-field="RS">RS</th>
-                                <th class="col-scoring-num" data-scoring-field="Z rank">Z rank</th>
-                                <th class="col-scoring-num" data-scoring-field="Z hold">Z hold</th>
-                                <th class="col-scoring-num" data-scoring-field="Chaikin">Chaikin</th>
-                                <th class="col-scoring-num" data-scoring-field="Call">Call</th>
-                                <th class="col-scoring-num" data-scoring-field="Setup">Setup</th>
-                                <th class="col-scoring-num" data-scoring-field="Vol">Vol</th>
-                                <th class="col-scoring-num" data-scoring-field="题材">题材</th>
-                                <th class="col-scoring-num" data-scoring-field="坏消息">坏消息</th>
-                                <th class="col-scoring-num" data-scoring-field="好消息">好消息</th>
-                                <th class="col-scoring-num" data-scoring-field="情绪">情绪</th>
-                                <th class="col-actions"></th>
-                            </tr>
-                        </thead>
-                        <tbody id="scoring-table-body">
-                            <!-- Rows will be inserted here dynamically -->
-                        </tbody>
-                    </table>
-                </div>
-                <div class="table-actions">
-                    <button id="scoring-add-row-btn" class="primary-btn">＋ Add Row</button>
+                <div class="scoring-layout">
+                    <button id="scoring-add-row-btn" class="add-row-circle" title="Add Row">+</button>
+                    <div class="table-container scoring-table-container">
+                        <table id="scoring-table">
+                            <thead>
+                                <tr>
+                                    <th class="col-scoring-code" data-scoring-field="代码">代码</th>
+                                    <th class="col-scoring-num" data-scoring-field="总分">总分</th>
+                                    <th class="col-scoring-time" data-scoring-field="Time">Time</th>
+                                    <th class="col-scoring-num" data-scoring-field="Follow">Follow</th>
+                                    <th class="col-scoring-num" data-scoring-field="RS">RS</th>
+                                    <th class="col-scoring-num" data-scoring-field="Z rank">Z rank</th>
+                                    <th class="col-scoring-num" data-scoring-field="Z hold">Z hold</th>
+                                    <th class="col-scoring-num" data-scoring-field="Chaikin">Chaikin</th>
+                                    <th class="col-scoring-num" data-scoring-field="Call">Call</th>
+                                    <th class="col-scoring-num" data-scoring-field="Setup">Setup</th>
+                                    <th class="col-scoring-num" data-scoring-field="Vol">Vol</th>
+                                    <th class="col-scoring-num" data-scoring-field="题材">题材</th>
+                                    <th class="col-scoring-num" data-scoring-field="坏消息">坏消息</th>
+                                    <th class="col-scoring-num" data-scoring-field="好消息">好消息</th>
+                                    <th class="col-scoring-num" data-scoring-field="情绪">情绪</th>
+                                    <th class="col-actions"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="scoring-table-body">
+                                <!-- Rows will be inserted here dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </section>
         </main>

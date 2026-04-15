@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, Menu } = require('electron');
 app.name = 'Decision Journal';
 const path = require('path');
 const fs = require('fs');
@@ -25,6 +25,36 @@ function createWindow() {
 
 app.whenReady().then(() => {
   createWindow();
+
+  // Application menu with Find support
+  const template = [
+    { role: 'appMenu' },
+    {
+      label: 'Edit',
+      submenu: [
+        { role: 'undo' },
+        { role: 'redo' },
+        { type: 'separator' },
+        { role: 'cut' },
+        { role: 'copy' },
+        { role: 'paste' },
+        { role: 'selectAll' },
+        { type: 'separator' },
+        {
+          label: 'Find',
+          accelerator: 'CmdOrCtrl+F',
+          click: () => {
+            if (mainWindow) {
+              mainWindow.webContents.send('toggle-find');
+            }
+          }
+        }
+      ]
+    },
+    { role: 'viewMenu' },
+    { role: 'windowMenu' }
+  ];
+  Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 
   app.on('activate', function () {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
