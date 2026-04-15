@@ -100,17 +100,7 @@ body {
     color: var(--text-color);
 }
 
-mark.find-highlight {
-    background-color: #fde68a;
-    color: inherit;
-    padding: 0 1px;
-    border-radius: 2px;
-}
 
-mark.find-highlight.find-active {
-    background-color: #f97316;
-    color: white;
-}
 
 /* Header */
 .app-header {

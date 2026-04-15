@@ -56,6 +56,15 @@ app.whenReady().then(() => {
   ];
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 
+  // Forward native found-in-page results to renderer
+  mainWindow.webContents.on('found-in-page', (event, result) => {
+    mainWindow.webContents.send('found-in-page-results', {
+      activeMatchOrdinal: result.activeMatchOrdinal,
+      matches: result.matches,
+      finalUpdate: result.finalUpdate
+    });
+  });
+
   app.on('activate', function () {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
@@ -179,5 +188,18 @@ ipcMain.handle('toggle-fullscreen', () => {
     } else {
       mainWindow.maximize();
     }
+  }
+});
+
+// Native Find in Page IPC handlers
+ipcMain.handle('find-in-page', (event, text, options) => {
+  if (mainWindow && text) {
+    mainWindow.webContents.findInPage(text, options || {});
+  }
+});
+
+ipcMain.handle('stop-find-in-page', () => {
+  if (mainWindow) {
+    mainWindow.webContents.stopFindInPage('clearSelection');
   }
 });

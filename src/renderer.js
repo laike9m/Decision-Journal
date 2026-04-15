@@ -726,11 +726,9 @@ function updateScoringHeaderUI() {
 }
 
 // ================================
-// Find in Page
+// Find in Page (native Electron API)
 // ================================
 let findBarVisible = false;
-let findMatches = [];
-let findCurrentIndex = -1;
 
 function initFind() {
     const findBar = document.getElementById('find-bar');
@@ -752,97 +750,65 @@ function initFind() {
         findBarVisible = false;
         findInput.value = '';
         findMatchCount.textContent = '';
-        clearHighlights();
+        window.electronAPI.stopFindInPage();
     }
 
-    function clearHighlights() {
-        document.querySelectorAll('mark.find-highlight').forEach(mark => {
-            const parent = mark.parentNode;
-            parent.replaceChild(document.createTextNode(mark.textContent), mark);
-            parent.normalize();
-        });
-        findMatches = [];
-        findCurrentIndex = -1;
+    function refocusFindInput() {
+        // findInPage steals focus to the page; reclaim it after a tick
+        setTimeout(() => {
+            if (findBarVisible) {
+                findInput.focus();
+            }
+        }, 0);
     }
 
     function performSearch(query) {
-        clearHighlights();
         if (!query) {
             findMatchCount.textContent = '';
+            window.electronAPI.stopFindInPage();
             return;
         }
-
-        const lowerQuery = query.toLowerCase();
-        // Search in all visible table cells (both journal and scoring)
-        const cells = document.querySelectorAll('.tab-content.active td');
-
-        cells.forEach(cell => {
-            // Skip cells with interactive elements (inputs, selects, buttons)
-            if (cell.querySelector('input, select, button')) return;
-            highlightInNode(cell, lowerQuery, query);
-        });
-
-        findMatches = [...document.querySelectorAll('mark.find-highlight')];
-        if (findMatches.length > 0) {
-            findCurrentIndex = 0;
-            activateMatch(0);
-            findMatchCount.textContent = `1/${findMatches.length}`;
-        } else {
-            findMatchCount.textContent = '0';
-        }
+        window.electronAPI.findInPage(query);
+        refocusFindInput();
     }
 
-    function highlightInNode(node, lowerQuery, originalQuery) {
-        const walker = document.createTreeWalker(node, NodeFilter.SHOW_TEXT, null);
-        const textNodes = [];
-        while (walker.nextNode()) textNodes.push(walker.currentNode);
-
-        textNodes.forEach(textNode => {
-            const text = textNode.textContent;
-            const lowerText = text.toLowerCase();
-            let idx = lowerText.indexOf(lowerQuery);
-            if (idx === -1) return;
-
-            const frag = document.createDocumentFragment();
-            let lastIdx = 0;
-            while (idx !== -1) {
-                frag.appendChild(document.createTextNode(text.slice(lastIdx, idx)));
-                const mark = document.createElement('mark');
-                mark.className = 'find-highlight';
-                mark.textContent = text.slice(idx, idx + originalQuery.length);
-                frag.appendChild(mark);
-                lastIdx = idx + originalQuery.length;
-                idx = lowerText.indexOf(lowerQuery, lastIdx);
+    // Listen for match results from the main process
+    window.electronAPI.onFoundInPageResults((result) => {
+        if (result.matches !== undefined) {
+            if (result.matches === 0) {
+                findMatchCount.textContent = '0';
+            } else {
+                findMatchCount.textContent = `${result.activeMatchOrdinal}/${result.matches}`;
             }
-            frag.appendChild(document.createTextNode(text.slice(lastIdx)));
-            textNode.parentNode.replaceChild(frag, textNode);
-        });
-    }
-
-    function activateMatch(index) {
-        findMatches.forEach(m => m.classList.remove('find-active'));
-        if (findMatches[index]) {
-            findMatches[index].classList.add('find-active');
-            findMatches[index].scrollIntoView({ block: 'center', behavior: 'smooth' });
-            findMatchCount.textContent = `${index + 1}/${findMatches.length}`;
         }
-    }
+        // Each result event can also steal focus, reclaim it
+        refocusFindInput();
+    });
 
     findInput.addEventListener('input', () => performSearch(findInput.value));
 
     findNext.addEventListener('click', () => {
-        if (findMatches.length === 0) return;
-        findCurrentIndex = (findCurrentIndex + 1) % findMatches.length;
-        activateMatch(findCurrentIndex);
+        if (findInput.value) {
+            window.electronAPI.findInPage(findInput.value, { forward: true, findNext: true });
+            refocusFindInput();
+        }
     });
 
     findPrev.addEventListener('click', () => {
-        if (findMatches.length === 0) return;
-        findCurrentIndex = (findCurrentIndex - 1 + findMatches.length) % findMatches.length;
-        activateMatch(findCurrentIndex);
+        if (findInput.value) {
+            window.electronAPI.findInPage(findInput.value, { forward: false, findNext: true });
+            refocusFindInput();
+        }
     });
 
     findInput.addEventListener('keydown', (e) => {
+        // Cmd/Ctrl+A should select find-input text, not the whole page
+        if ((e.metaKey || e.ctrlKey) && e.key === 'a') {
+            e.stopPropagation();
+            e.preventDefault();
+            findInput.select();
+            return;
+        }
         if (e.key === 'Enter') {
             e.preventDefault();
             if (e.shiftKey) findPrev.click();
