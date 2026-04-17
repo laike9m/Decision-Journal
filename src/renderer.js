@@ -106,10 +106,22 @@ async function init() {
             document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
             // Activate clicked tab
             btn.classList.add('active');
-            const tabId = 'tab-' + btn.getAttribute('data-tab');
+            const tab = btn.getAttribute('data-tab');
+            const tabId = 'tab-' + tab;
             document.getElementById(tabId).classList.add('active');
+            // Persist active tab
+            localStorage.setItem('activeTab', tab);
         });
     });
+
+    // Restore last active tab (survives Cmd+R reload)
+    const savedTab = localStorage.getItem('activeTab');
+    if (savedTab) {
+        const savedBtn = document.querySelector(`.tab-btn[data-tab="${savedTab}"]`);
+        if (savedBtn) {
+            savedBtn.click();
+        }
+    }
 
     // Load saved path from config or get default
     try {
@@ -575,6 +587,9 @@ function renderScoringTable() {
     scoringData.forEach((row, index) => {
         const tr = document.createElement('tr');
 
+        // Refresh button cell (first column, styled to look outside)
+        tr.appendChild(createRefreshCell(index));
+
         SCORING_FIELDS.forEach(field => {
             const td = document.createElement('td');
 
@@ -663,6 +678,8 @@ async function addScoringRow() {
     await saveScoringData();
     renderScoringTable();
 }
+
+// refreshScoringRow is defined in scoring-refresh.js
 
 async function deleteScoringRow(index) {
     if (confirm('确定删除这行吗？')) {

@@ -104,11 +104,11 @@
         <main id="tab-scoring" class="tab-content">
             <section class="table-section scoring-section">
                 <div class="scoring-layout">
-                    <button id="scoring-add-row-btn" class="add-row-circle" title="Add Row">+</button>
                     <div class="table-container scoring-table-container">
                         <table id="scoring-table">
                             <thead>
                                 <tr>
+                                    <th class="col-scoring-action"><button id="scoring-add-row-btn" class="add-row-header-btn" title="Add Row">+</button></th>
                                     <th class="col-scoring-code" data-scoring-field="代码">代码</th>
                                     <th class="col-scoring-num" data-scoring-field="总分">总分</th>
                                     <th class="col-scoring-time" data-scoring-field="Time">Time</th>
@@ -166,6 +166,8 @@
         </div>
     </div>
 
+    <!-- Scoring Refresh Module -->
+    <script src="update-score.js"></script>
     <!-- Renderer Script -->
     <script src="renderer.js"></script>
 </body>
