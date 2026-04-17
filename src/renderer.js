@@ -8,8 +8,8 @@ let currentSort = { field: null, ascending: true };
 let scoringCsvPath = '';
 let scoringData = [];
 let scoringSort = { field: null, ascending: true };
-const SCORING_FIELDS = ['代码', '总分', 'Time', 'Follow', 'RS', 'Z rank', 'Z hold', 'Chaikin', 'Call', 'Setup', 'Vol', '题材', '坏消息', '好消息', '情绪'];
-const SCORING_NUM_FIELDS = ['总分', 'Follow', 'RS', 'Z rank', 'Z hold', 'Chaikin', 'Call', 'Setup', 'Vol', '题材', '坏消息', '好消息', '情绪'];
+const SCORING_FIELDS = ['代码', '总分', 'Time', 'Follow', 'RS', 'Z rank', 'Z hold', 'CK', 'Call', 'Setup', '机构筹码', '过往信号', 'Vol', '题材', '消息', '情绪'];
+const SCORING_NUM_FIELDS = ['总分', 'Follow', 'RS', 'Z rank', 'Z hold', 'CK', 'Call', 'Setup', '机构筹码', '过往信号', 'Vol', '题材', '消息', '情绪'];
 
 // DOM Elements
 let tableBody;
@@ -532,6 +532,17 @@ function makeScoringRow(row = {}) {
     SCORING_FIELDS.forEach(field => {
         result[field] = row[field] !== undefined ? String(row[field]) : '';
     });
+    // Backward compat: migrate old Chaikin → CK
+    if (!result['CK'] && row['Chaikin'] !== undefined) {
+        result['CK'] = String(row['Chaikin']);
+    }
+    // Backward compat: merge old 好消息 + 坏消息 → 消息
+    if (!result['消息'] && (row['好消息'] !== undefined || row['坏消息'] !== undefined)) {
+        const good = parseFloat(row['好消息']) || 0;
+        const bad = parseFloat(row['坏消息']) || 0;
+        const sum = good + bad;
+        result['消息'] = sum !== 0 ? String(sum) : '';
+    }
     // Default Time to today if empty on new rows
     if (!result['Time'] && !row['Time']) {
         const now = new Date();

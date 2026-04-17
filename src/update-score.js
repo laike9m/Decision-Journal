@@ -180,7 +180,7 @@ async function refreshScoringRow(index) {
 
         scoringData[index]['Z rank'] = results.zRank;
         scoringData[index]['Z hold'] = results.zHold;
-        scoringData[index]['Chaikin'] = results.chaikin;
+        scoringData[index]['CK'] = results.chaikin;
         
         // Recalculate total score
         if (typeof calculateScoringTotal === 'function') {
@@ -196,7 +196,7 @@ async function refreshScoringRow(index) {
 
         clearToasts();
         showToast(
-            `✅ $${ticker}: Z rank=${results.zRank}, Z hold=${results.zHold}, Chaikin=${results.chaikin}`,
+            `✅ $${ticker}: Z rank=${results.zRank}, Z hold=${results.zHold}, CK=${results.chaikin}`,
             'success',
             8000
         );
