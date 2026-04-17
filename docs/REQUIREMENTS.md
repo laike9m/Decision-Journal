@@ -6,6 +6,7 @@
 - **前端**: 原生 HTML5 / CSS3 / JavaScript (Vanilla JS)
 - **图表**: Chart.js
 - **解析器**: PapaParse (用于 CSV 解析)
+- **通信**: ws (WebSocket，用于与 Chrome 扩展通信)
 - **依赖管理**: npm
 - **数据存储**: 本地 CSV 文件，支持双向实时同步
 
@@ -66,6 +67,58 @@
 - 数据存储在独立 CSV 文件（默认与 Decision Journal 同目录下 `scoring_table.csv`）
 - CSV 路径同样在 Settings Modal 中配置，持久化到 `config.json`
 
+### 打分表 — 自动刷新分数
+
+- 每行有一个 **↻ 刷新按钮**，点击后自动从外部数据源获取最新分数
+- 通过 **WebDataWizard Chrome 扩展** 获取数据（见下方章节）
+- 获取的字段：**Z rank**、**Chaikin**
+- 获取过程中按钮变为 ⌛ 状态，完成后恢复
+- **Zacks 和 Chaikin 并行获取**，减少等待时间
+- 获取完成后自动重新计算总分、更新 Time 字段、保存 CSV 并刷新表格
+
+### Toast 通知系统
+
+- 固定在窗口右上角，堆叠显示（最多 8 条）
+- 毛玻璃风格，带滑入/滑出动画
+- 四种类型：`info`（紫色）、`success`（绿色）、`error`（红色）、`progress`（蓝色）
+- 通过 IPC `score-progress` 通道接收来自主进程的实时进度消息
+- 自动定时消失，成功消息保留较长时间
+
+## WebDataWizard Chrome 扩展集成
+
+Decision Journal 通过 **WebDataWizard** Chrome 扩展从已登录的浏览器会话中获取金融数据，无需在 Electron 中处理登录流程。
+
+### 通信架构
+
+```
+Decision Journal (Electron)              WebDataWizard (Chrome Extension)
+┌───────────────────────────┐            ┌────────────────────────────────┐
+│  ws_server.js             │            │  offscreen.js                  │
+│  WebSocket Server (:18234)│◄──────────►│  (持久 WebSocket 连接)          │
+│                           │            │         ↕                      │
+│  main.js                  │            │  background.js                 │
+│  IPC: update-scores       │            │  (标签页管理 + 内容脚本调度)      │
+│  IPC: score-progress      │            │         ↕                      │
+│                           │            │  content_zacks.js              │
+│  update-score.js          │            │  content_chaikin.js            │
+│  (Toast 通知 + UI 更新)    │            │  (DOM 数据提取)                 │
+└───────────────────────────┘            └────────────────────────────────┘
+```
+
+### 工作流程
+
+1. Electron 应用启动时，`ws_server.js` 在 `localhost:18234` 启动 WebSocket 服务器
+2. Chrome 扩展的 offscreen document 自动连接到该服务器（持久连接，不受 Service Worker 生命周期影响）
+3. 用户点击打分表中的 ↻ 刷新按钮
+4. Electron 通过 WebSocket 发送 `{ action: "fetchScores", ticker: "ONDS" }` 请求
+5. 扩展在后台同时打开 Zacks 和 Chaikin 页面，通过内容脚本提取数据
+6. 结果通过 WebSocket 返回给 Electron，更新表格并显示 Toast 通知
+
+### 前置条件
+
+- Chrome 浏览器已安装并加载 WebDataWizard 扩展
+- 浏览器已登录 Zacks 和 Chaikin Analytics 账户
+
 ## UI / 布局
 
 - 现代毛玻璃（Glassmorphism）风格，Inter 字体，圆角卡片
@@ -74,3 +127,4 @@
   - 隐藏原生标题栏（`hiddenInset`），使用自定义拖拽区域。
   - 双击顶部空白区域可最大化/还原窗口（普通全屏逻辑）。
 - **清理**: 已移除所有 Streamlit 和 Python 相关的冗余文件。
+

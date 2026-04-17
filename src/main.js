@@ -2,6 +2,7 @@ const { app, BrowserWindow, ipcMain, dialog, Menu } = require('electron');
 app.name = 'Decision Journal';
 const path = require('path');
 const fs = require('fs');
+const { startServer, stopServer, updateScores } = require('./ws_server');
 
 let mainWindow;
 
@@ -29,6 +30,9 @@ app.whenReady().then(() => {
   if (process.platform === 'darwin' && app.dock) {
     app.dock.setIcon(path.join(__dirname, '..', 'assets', 'app_icon_dock.png'));
   }
+
+  // Start WebSocket server for Chrome extension communication
+  startServer();
 
   createWindow();
 
@@ -77,6 +81,7 @@ app.whenReady().then(() => {
 });
 
 app.on('window-all-closed', function () {
+  stopServer();
   if (process.platform !== 'darwin') app.quit();
 });
 
@@ -194,6 +199,23 @@ ipcMain.handle('toggle-fullscreen', () => {
     } else {
       mainWindow.maximize();
     }
+  }
+});
+
+ipcMain.handle('update-scores', async (event, ticker) => {
+  try {
+    const userDataPath = app.getPath('userData');
+    const onProgress = (msg) => {
+      console.log('[ws_server]', msg);
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('score-progress', msg);
+      }
+    };
+    const results = await updateScores(ticker, userDataPath, onProgress);
+    return results;
+  } catch (error) {
+    console.error('Error updating scores:', error);
+    throw error;
   }
 });
 
