@@ -9,6 +9,7 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
+    icon: path.join(__dirname, '..', 'assets', 'app_icon.png'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -24,6 +25,11 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+  // Set Dock icon on macOS (needed for dev mode since there's no .app bundle)
+  if (process.platform === 'darwin' && app.dock) {
+    app.dock.setIcon(path.join(__dirname, '..', 'assets', 'app_icon_dock.png'));
+  }
+
   createWindow();
 
   // Application menu with Find support

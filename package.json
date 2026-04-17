@@ -15,6 +15,7 @@
   },
   "build": {
     "appId": "com.laike9m.decisionjournal",
+    "icon": "assets/app_icon.png",
     "mac": {
       "category": "public.app-category.productivity",
       "target": [
@@ -26,6 +27,7 @@
     },
     "files": [
       "src/**/*",
+      "icon/**/*",
       "package.json"
     ]
   }
