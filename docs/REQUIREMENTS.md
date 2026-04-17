@@ -71,9 +71,9 @@
 
 - 每行有一个 **↻ 刷新按钮**，点击后自动从外部数据源获取最新分数
 - 通过 **WebDataWizard Chrome 扩展** 获取数据（见下方章节）
-- 获取的字段：**Z rank**、**Chaikin**
+- 获取的字段：**Z rank**、**Z hold**、**Chaikin**
 - 获取过程中按钮变为 ⌛ 状态，完成后恢复
-- **Zacks 和 Chaikin 并行获取**，减少等待时间
+- **并行获取**：Zacks Rank、Zacks Hold 和 Chaikin 评分均并行获取，减少等待时间
 - 获取完成后自动重新计算总分、更新 Time 字段、保存 CSV 并刷新表格
 
 ### Toast 通知系统
@@ -97,11 +97,11 @@ Decision Journal (Electron)              WebDataWizard (Chrome Extension)
 │  WebSocket Server (:18234)│◄──────────►│  (持久 WebSocket 连接)          │
 │                           │            │         ↕                      │
 │  main.js                  │            │  background.js                 │
-│  IPC: update-scores       │            │  (标签页管理 + 内容脚本调度)      │
+│  IPC: update-scores       │            │  (调度 + 引入数据源)             │
 │  IPC: score-progress      │            │         ↕                      │
-│                           │            │  content_zacks.js              │
-│  update-score.js          │            │  content_chaikin.js            │
-│  (Toast 通知 + UI 更新)    │            │  (DOM 数据提取)                 │
+│                           │            │  data_sources/*.js             │
+│  update-score.js          │            │  (Zacks Rank/Hold, Chaikin)    │
+│  (Toast 通知 + UI 更新)    │            │  (数据提取)                     │
 └───────────────────────────┘            └────────────────────────────────┘
 ```
 
