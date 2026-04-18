@@ -104,7 +104,7 @@ function stopServer() {
  * @param {string} ticker
  * @param {string} userDataPath — unused now, kept for API compat
  * @param {(msg: string) => void} onProgress
- * @returns {Promise<{ticker, zRank, zHold, chaikin, raw}>}
+ * @returns {Promise<{ticker, zRank, zHold, chaikin, sentiment, raw}>}
  */
 async function updateScores(ticker, userDataPath, onProgress = () => { }) {
     if (!extensionSocket || extensionSocket.readyState !== WebSocket.OPEN) {
@@ -130,6 +130,7 @@ async function updateScores(ticker, userDataPath, onProgress = () => { }) {
                     zRank: result.zRank,
                     zHold: result.zHold,
                     chaikin: result.chaikin,
+                    sentiment: result.sentiment,
                     raw: result.raw,
                 });
             },
