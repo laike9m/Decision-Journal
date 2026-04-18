@@ -54,19 +54,19 @@ async function init() {
     addRowBtn.addEventListener('click', addRow);
     settingsBtn.addEventListener('click', () => settingsModal.classList.add('active'));
     closeModalBtn.addEventListener('click', () => settingsModal.classList.remove('active'));
-    
+
     // Header click listeners for sorting
     const headers = document.querySelectorAll('#journal-table th[data-field]');
     headers.forEach(header => {
         header.style.cursor = 'pointer';
         header.addEventListener('click', () => sortData(header.getAttribute('data-field')));
     });
-    
+
     const titleBar = document.getElementById('title-bar');
     titleBar.addEventListener('dblclick', () => {
         window.electronAPI.toggleFullscreen();
     });
-    
+
     browseFileBtn.addEventListener('click', async () => {
         const newPath = await window.electronAPI.selectFile();
         if (newPath) {
@@ -171,7 +171,7 @@ async function init() {
                     '后续走势': row['后续走势'] || '',
                     'Rules Followed': row['Rules Followed'] || 'Yes'
                 }));
-                
+
                 // Only update if data actually changed to avoid infinite loops
                 if (JSON.stringify(newData) !== JSON.stringify(journalData)) {
                     journalData = newData;
@@ -214,7 +214,7 @@ async function loadData() {
             const cleanContent = content.replace(/^\uFEFF/, '');
             const result = Papa.parse(cleanContent, { header: true, skipEmptyLines: true });
             journalData = result.data;
-            
+
             // Ensure columns exist and fill defaults
             journalData = journalData.map(row => ({
                 Date: row.Date || new Date().toISOString().split('T')[0],
@@ -236,10 +236,10 @@ async function loadData() {
             }];
             await saveData(); // Create the file
         }
-        
+
         // Default sort by Date descending (without showing arrow)
         journalData.sort((a, b) => new Date(b.Date) - new Date(a.Date));
-        
+
         renderTable();
         updateStats();
         renderChart();
@@ -258,10 +258,10 @@ async function saveData() {
 // Render Table
 function renderTable() {
     tableBody.innerHTML = '';
-    
+
     journalData.forEach((row, index) => {
         const tr = document.createElement('tr');
-        
+
         // Date
         const tdDate = document.createElement('td');
         tdDate.className = 'col-date';
@@ -272,7 +272,7 @@ function renderTable() {
         dateInput.addEventListener('change', () => updateCell(index, 'Date', dateInput.value));
         tdDate.appendChild(dateInput);
         tr.appendChild(tdDate);
-        
+
         // Ticker
         const tdTicker = document.createElement('td');
         tdTicker.className = 'col-ticker';
@@ -280,28 +280,28 @@ function renderTable() {
         tdTicker.textContent = row.Ticker || '';
         tdTicker.addEventListener('blur', () => updateCell(index, 'Ticker', tdTicker.textContent));
         tr.appendChild(tdTicker);
-        
+
         // Action
         const tdAction = document.createElement('td');
         tdAction.contentEditable = true;
         tdAction.textContent = row.Action;
         tdAction.addEventListener('blur', () => updateCell(index, 'Action', tdAction.textContent));
         tr.appendChild(tdAction);
-        
+
         // Rules
         const tdRules = document.createElement('td');
         tdRules.contentEditable = true;
         tdRules.textContent = row.Rules;
         tdRules.addEventListener('blur', () => updateCell(index, 'Rules', tdRules.textContent));
         tr.appendChild(tdRules);
-        
+
         // 后续走势
         const tdTrend = document.createElement('td');
         tdTrend.contentEditable = true;
         tdTrend.textContent = row['后续走势'] || '';
         tdTrend.addEventListener('blur', () => updateCell(index, '后续走势', tdTrend.textContent));
         tr.appendChild(tdTrend);
-        
+
         // Rules Followed (Select)
         const tdFollowed = document.createElement('td');
         tdFollowed.className = 'col-rules-followed';
@@ -317,7 +317,7 @@ function renderTable() {
         select.addEventListener('change', () => updateCell(index, 'Rules Followed', select.value));
         tdFollowed.appendChild(select);
         tr.appendChild(tdFollowed);
-        
+
         // Actions
         const tdActions = document.createElement('td');
         tdActions.className = 'col-actions';
@@ -328,7 +328,7 @@ function renderTable() {
         deleteBtn.addEventListener('click', () => deleteRow(index));
         tdActions.appendChild(deleteBtn);
         tr.appendChild(tdActions);
-        
+
         tableBody.appendChild(tr);
     });
 }
@@ -351,23 +351,23 @@ function sortData(field) {
         currentSort.field = field;
         currentSort.ascending = true;
     }
-    
+
     journalData.sort((a, b) => {
         let valA = a[field] || '';
         let valB = b[field] || '';
-        
+
         if (field === 'Date') {
             return currentSort.ascending ? new Date(valA) - new Date(valB) : new Date(valB) - new Date(valA);
         }
-        
+
         valA = valA.toLowerCase();
         valB = valB.toLowerCase();
-        
+
         if (valA < valB) return currentSort.ascending ? -1 : 1;
         if (valA > valB) return currentSort.ascending ? 1 : -1;
         return 0;
     });
-    
+
     renderTable();
     updateHeaderUI();
 }
@@ -378,10 +378,10 @@ function updateHeaderUI() {
     headers.forEach(header => {
         const field = header.getAttribute('data-field');
         if (!field) return;
-        
+
         // Remove existing arrows
         let text = header.textContent.replace(/ [▲▼]$/, '');
-        
+
         if (field === currentSort.field) {
             text += currentSort.ascending ? ' ▲' : ' ▼';
         }
@@ -430,7 +430,7 @@ async function deleteRow(index) {
 function calculateStats(data) {
     const validRows = data.filter(row => row.Action && row.Action.trim() !== '');
     if (validRows.length === 0) return { yes: 0, no: 0, rate: 0 };
-    
+
     const yes = validRows.filter(row => row['Rules Followed'] === 'Yes').length;
     const no = validRows.filter(row => row['Rules Followed'] === 'No').length;
     const total = yes + no;
@@ -441,12 +441,12 @@ function calculateStats(data) {
 function calculateChartData(data) {
     const validRows = data.filter(row => row.Action && row.Action.trim() !== '');
     if (validRows.length === 0) return { labels: [], data: [] };
-    
+
     const sortedRows = [...validRows].sort((a, b) => new Date(a.Date) - new Date(b.Date));
     const labels = [];
     const chartData = [];
     let cumulativeYes = 0;
-    
+
     sortedRows.forEach((row, index) => {
         labels.push(row.Date);
         if (row['Rules Followed'] === 'Yes') {
@@ -469,7 +469,7 @@ function updateStats() {
 // Render Chart
 function renderChart() {
     const { labels, data } = calculateChartData(journalData);
-    
+
     if (labels.length === 0) {
         if (trendChart) {
             trendChart.destroy();
@@ -477,9 +477,9 @@ function renderChart() {
         }
         return;
     }
-    
+
     const ctx = document.getElementById('trend-chart').getContext('2d');
-    
+
     if (trendChart) {
         trendChart.data.labels = labels;
         trendChart.data.datasets[0].data = data;
@@ -507,7 +507,7 @@ function renderChart() {
                         beginAtZero: true,
                         max: 100,
                         ticks: {
-                            callback: function(value) {
+                            callback: function (value) {
                                 return value + '%';
                             }
                         }
@@ -615,7 +615,11 @@ function renderScoringTable() {
                 const total = calculateScoringTotal(row);
                 td.textContent = total;
                 td.classList.add('score-total');
-                if (total >= 6) {
+                // Force red when Setup is 0 (disqualified)
+                const setupVal = parseFloat(row['Setup']);
+                if (setupVal === 0 && !isNaN(setupVal) && row['Setup'].trim() !== '') {
+                    td.classList.add('score-low');
+                } else if (total >= 6) {
                     td.classList.add('score-high');
                 } else if (total >= 4) {
                     td.classList.add('score-medium');
@@ -632,16 +636,27 @@ function renderScoringTable() {
                 td.className = 'col-scoring-num';
                 td.contentEditable = true;
                 const val = parseFloat(row[field]);
-                td.textContent = row[field] || '';
-                if (!isNaN(val)) {
-                    if (val === 1 || val === 1.5) td.classList.add('score-green');
-                    else if (val === 0.5) td.classList.add('score-orange');
-                    else if (val === 0) td.classList.add('score-zero');
-                    else if (val === -0.5) td.classList.add('score-light-red');
-                    else if (val <= -1) td.classList.add('score-deep-red');
+                // Setup=0: show ❌ instead of 0
+                if (field === 'Setup' && val === 0 && !isNaN(val) && row[field].trim() !== '') {
+                    td.textContent = '❌';
+                    td.classList.add('score-deep-red');
+                } else {
+                    td.textContent = row[field] || '';
+                    if (!isNaN(val)) {
+                        if (val === 1 || val === 1.5) td.classList.add('score-green');
+                        else if (val === 0.5) td.classList.add('score-orange');
+                        else if (val === 0) td.classList.add('score-zero');
+                        else if (val === -0.5) td.classList.add('score-light-red');
+                        else if (val <= -1) td.classList.add('score-deep-red');
+                    }
                 }
                 td.addEventListener('blur', () => {
-                    updateScoringCell(index, field, td.textContent);
+                    let cellValue = td.textContent;
+                    // Convert ❌ back to "0" for Setup field
+                    if (field === 'Setup' && cellValue.trim() === '❌') {
+                        cellValue = '0';
+                    }
+                    updateScoringCell(index, field, cellValue);
                 });
             }
 
