@@ -8,8 +8,8 @@ let currentSort = { field: null, ascending: true };
 let scoringCsvPath = '';
 let scoringData = [];
 let scoringSort = { field: null, ascending: true };
-const SCORING_FIELDS = ['代码', '总分', 'Time', 'Follow', 'RS', 'Z rank', 'Z hold', 'CK', 'Call', 'Setup', '机构筹码', '过往信号', 'Vol', '题材', '消息', '情绪'];
-const SCORING_NUM_FIELDS = ['总分', 'Follow', 'RS', 'Z rank', 'Z hold', 'CK', 'Call', 'Setup', '机构筹码', '过往信号', 'Vol', '题材', '消息', '情绪'];
+const SCORING_FIELDS = ['代码', '总分', 'Time', 'Follow', 'Z rank', 'Z hold', 'CK', 'Call', 'Setup', '机构筹码', '过往信号', 'Vol', '题材', '消息', '情绪'];
+const SCORING_NUM_FIELDS = ['总分', 'Follow', 'Z rank', 'Z hold', 'CK', 'Call', 'Setup', '机构筹码', '过往信号', 'Vol', '题材', '消息', '情绪'];
 
 // DOM Elements
 let tableBody;
