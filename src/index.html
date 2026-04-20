@@ -41,6 +41,7 @@
 
         <!-- Tab: Decision Journal -->
         <main id="tab-journal" class="tab-content active">
+            <p class="tab-motto"><strong>先记录，再操作</strong></p>
             <div class="main-content">
                 <!-- Left Column: Table -->
                 <section class="table-section">
@@ -48,6 +49,7 @@
                         <table id="journal-table">
                             <thead>
                                 <tr>
+                                    <th class="col-scoring-action"><button id="add-row-btn" class="add-row-header-btn" title="Add Row">+</button></th>
                                     <th class="col-date" data-field="Date">Date</th>
                                     <th class="col-ticker" data-field="Ticker">Ticker</th>
                                     <th data-field="Action">Action</th>
@@ -62,9 +64,7 @@
                             </tbody>
                         </table>
                     </div>
-                    <div class="table-actions">
-                        <button id="add-row-btn" class="primary-btn">＋ Add Row</button>
-                    </div>
+
                 </section>
 
                 <!-- Right Column: Stats & Chart -->

@@ -169,6 +169,15 @@ h1 {
     to { opacity: 1; transform: translateY(0); }
 }
 
+/* Tab Motto */
+.tab-motto {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--text-color);
+    margin-bottom: 0.75rem;
+    padding-left: calc(1.5rem + 1px + 1rem);
+}
+
 /* Layout */
 .main-content {
     display: grid;
@@ -524,7 +533,8 @@ input[readonly] {
     border-bottom-color: transparent !important;
 }
 
-#scoring-table tr:hover td.col-scoring-action {
+#scoring-table tr:hover td.col-scoring-action,
+#journal-table tr:hover td.col-scoring-action {
     background: transparent !important;
 }
 

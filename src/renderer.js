@@ -262,6 +262,11 @@ function renderTable() {
     journalData.forEach((row, index) => {
         const tr = document.createElement('tr');
 
+        // Empty action cell (matches header + button column)
+        const tdAction0 = document.createElement('td');
+        tdAction0.className = 'col-scoring-action';
+        tr.appendChild(tdAction0);
+
         // Date
         const tdDate = document.createElement('td');
         tdDate.className = 'col-date';
@@ -349,7 +354,8 @@ function sortData(field) {
         currentSort.ascending = !currentSort.ascending;
     } else {
         currentSort.field = field;
-        currentSort.ascending = true;
+        // Date defaults to descending (newest first), others ascending
+        currentSort.ascending = field !== 'Date';
     }
 
     journalData.sort((a, b) => {
@@ -391,7 +397,7 @@ function updateHeaderUI() {
 
 // Add Row
 async function addRow() {
-    journalData.push({
+    journalData.unshift({
         Date: new Date().toISOString().split('T')[0],
         Ticker: '',
         Action: '',
