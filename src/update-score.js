@@ -196,6 +196,10 @@ async function refreshScoringRow(index) {
         const now = new Date();
         scoringData[index]['Time'] = `${now.getMonth() + 1}/${now.getDate()}`;
 
+        // Move updated row to the top
+        const [row] = scoringData.splice(index, 1);
+        scoringData.unshift(row);
+
         await saveScoringData();
         renderScoringTable();
 
