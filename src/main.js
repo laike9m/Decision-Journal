@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, Menu } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, Menu, shell } = require('electron');
 app.name = 'Decision Journal';
 const path = require('path');
 const fs = require('fs');
@@ -230,4 +230,8 @@ ipcMain.handle('stop-find-in-page', () => {
   if (mainWindow) {
     mainWindow.webContents.stopFindInPage('clearSelection');
   }
+});
+
+ipcMain.handle('open-external', (event, url) => {
+  return shell.openExternal(url);
 });
