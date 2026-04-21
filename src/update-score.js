@@ -175,7 +175,7 @@ async function refreshScoringRow(index) {
     showToast(`Fetching scores for $${ticker}…`, 'info', 0);
 
     // Open TradingView chart in the default browser
-    const tvUrl = `https://www.tradingview.com/chart/?symbol=${encodeURIComponent(ticker)}`;
+  const tvUrl = `https://cn.tradingview.com/chart/?symbol=${encodeURIComponent(ticker)}`;
     window.electronAPI.openExternal(tvUrl);
 
     try {
