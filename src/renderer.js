@@ -8,6 +8,13 @@ let currentSort = { field: null, ascending: true };
 let scoringCsvPath = '';
 let scoringData = [];
 let scoringSort = { field: null, ascending: true };
+
+// Holdings table state
+let holdingsCsvPath = '';
+let holdingsData = [];
+const HOLDINGS_FIELDS = ['Ticker', '状态', '均价 * 股数', '是否有警报', '是否有自动止损'];
+const HOLDINGS_STATUS_OPTIONS = ['🔻', '💹'];
+const HOLDINGS_YN_OPTIONS = ['✅', '❌'];
 const SCORING_FIELDS = ['代码', '总分', 'Time', 'Follow', 'Z rank', 'Z hold', 'CK', 'Call', 'Setup', '机构筹码', '过往信号', 'Vol', '题材', '消息', '情绪'];
 const SCORING_NUM_FIELDS = ['总分', 'Follow', 'Z rank', 'Z hold', 'CK', 'Call', 'Setup', '机构筹码', '过往信号', 'Vol', '题材', '消息', '情绪'];
 
@@ -29,6 +36,12 @@ let scoringAddRowBtn;
 let scoringCsvPathInput;
 let scoringBrowseFileBtn;
 
+// Holdings DOM Elements
+let holdingsTableBody;
+let addHoldingsRowBtn;
+let holdingsCsvPathInput;
+let holdingsBrowseFileBtn;
+
 
 // Initialize
 async function init() {
@@ -48,6 +61,12 @@ async function init() {
     scoringAddRowBtn = document.getElementById('scoring-add-row-btn');
     scoringCsvPathInput = document.getElementById('scoring-csv-path-input');
     scoringBrowseFileBtn = document.getElementById('scoring-browse-file-btn');
+
+    // Holdings DOM
+    holdingsTableBody = document.getElementById('holdings-table-body');
+    addHoldingsRowBtn = document.getElementById('add-holdings-row-btn');
+    holdingsCsvPathInput = document.getElementById('holdings-csv-path-input');
+    holdingsBrowseFileBtn = document.getElementById('holdings-browse-file-btn');
 
 
     // Event Listeners
@@ -72,21 +91,32 @@ async function init() {
         if (newPath) {
             csvPath = newPath;
             csvPathInput.value = csvPath;
-            await window.electronAPI.saveConfig(csvPath, scoringCsvPath);
+            await window.electronAPI.saveConfig(csvPath, scoringCsvPath, holdingsCsvPath);
             await loadData();
         }
     });
 
     // Scoring event listeners
     scoringAddRowBtn.addEventListener('click', addScoringRow);
+    addHoldingsRowBtn.addEventListener('click', addHoldingsRow);
 
     scoringBrowseFileBtn.addEventListener('click', async () => {
         const newPath = await window.electronAPI.selectFile();
         if (newPath) {
             scoringCsvPath = newPath;
             scoringCsvPathInput.value = scoringCsvPath;
-            await window.electronAPI.saveConfig(csvPath, scoringCsvPath);
+            await window.electronAPI.saveConfig(csvPath, scoringCsvPath, holdingsCsvPath);
             await loadScoringData();
+        }
+    });
+
+    holdingsBrowseFileBtn.addEventListener('click', async () => {
+        const newPath = await window.electronAPI.selectFile();
+        if (newPath) {
+            holdingsCsvPath = newPath;
+            holdingsCsvPathInput.value = holdingsCsvPath;
+            await window.electronAPI.saveConfig(csvPath, scoringCsvPath, holdingsCsvPath);
+            await loadHoldingsData();
         }
     });
 
@@ -128,21 +158,30 @@ async function init() {
         const config = await window.electronAPI.getConfig();
         csvPath = config.csvPath;
         scoringCsvPath = config.scoringCsvPath || '';
+        holdingsCsvPath = config.holdingsCsvPath || '';
         if (!csvPath) {
             csvPath = await window.electronAPI.getDefaultPath();
-            await window.electronAPI.saveConfig(csvPath, scoringCsvPath);
+            await window.electronAPI.saveConfig(csvPath, scoringCsvPath, holdingsCsvPath);
         }
         if (!scoringCsvPath) {
             // Default scoring CSV in same directory as journal CSV
             const parts = csvPath.split('/');
             parts.pop();
             scoringCsvPath = parts.join('/') + '/scoring_table.csv';
-            await window.electronAPI.saveConfig(csvPath, scoringCsvPath);
+            await window.electronAPI.saveConfig(csvPath, scoringCsvPath, holdingsCsvPath);
+        }
+        if (!holdingsCsvPath) {
+            const parts = csvPath.split('/');
+            parts.pop();
+            holdingsCsvPath = parts.join('/') + '/holdings.csv';
+            await window.electronAPI.saveConfig(csvPath, scoringCsvPath, holdingsCsvPath);
         }
         csvPathInput.value = csvPath;
         scoringCsvPathInput.value = scoringCsvPath;
+        holdingsCsvPathInput.value = holdingsCsvPath;
         await loadData();
         await loadScoringData();
+        await loadHoldingsData();
     } catch (e) {
         console.error('Failed to initialize data:', e);
         // Fallback to default path if everything fails
@@ -178,6 +217,17 @@ async function init() {
                     renderTable();
                     updateStats();
                     renderChart();
+                }
+            }
+        } else if (path === holdingsCsvPath) {
+            const content = await window.electronAPI.readFile(holdingsCsvPath);
+            if (content) {
+                const cleanContent = content.replace(/^\uFEFF/, '');
+                const result = Papa.parse(cleanContent, { header: true, skipEmptyLines: true });
+                const newData = result.data.map(row => makeHoldingsRow(row));
+                if (JSON.stringify(newData) !== JSON.stringify(holdingsData)) {
+                    holdingsData = newData;
+                    renderHoldingsTable();
                 }
             }
         } else if (path === scoringCsvPath) {
@@ -772,6 +822,152 @@ function updateScoringHeaderUI() {
         }
         header.textContent = text;
     });
+}
+
+// ================================
+// Holdings Table (持仓表) functions
+// ================================
+
+function makeHoldingsRow(row = {}) {
+    return {
+        'Ticker': row['Ticker'] || '',
+        '状态': row['状态'] || '🔻',
+        '均价 * 股数': row['均价 * 股数'] || '',
+        '是否有警报': row['是否有警报'] || '❌',
+        '是否有自动止损': row['是否有自动止损'] || '❌'
+    };
+}
+
+async function loadHoldingsData() {
+    try {
+        const content = await window.electronAPI.readFile(holdingsCsvPath);
+        if (content) {
+            const cleanContent = content.replace(/^\uFEFF/, '');
+            const result = Papa.parse(cleanContent, { header: true, skipEmptyLines: true });
+            holdingsData = result.data.map(row => makeHoldingsRow(row));
+        } else {
+            holdingsData = [];
+            await saveHoldingsData();
+        }
+        renderHoldingsTable();
+    } catch (error) {
+        console.error('Failed to load holdings data:', error);
+    }
+}
+
+async function saveHoldingsData() {
+    const csv = Papa.unparse(holdingsData, { columns: HOLDINGS_FIELDS });
+    await window.electronAPI.writeFile(holdingsCsvPath, csv);
+}
+
+function renderHoldingsTable() {
+    holdingsTableBody.innerHTML = '';
+
+    holdingsData.forEach((row, index) => {
+        const tr = document.createElement('tr');
+
+        // Ticker (editable)
+        const tdTicker = document.createElement('td');
+        tdTicker.className = 'col-holdings-ticker';
+        tdTicker.contentEditable = true;
+        tdTicker.textContent = row['Ticker'] || '';
+        tdTicker.addEventListener('blur', () => updateHoldingsCell(index, 'Ticker', tdTicker.textContent));
+        tr.appendChild(tdTicker);
+
+        // 状态 (select: 🔻 or 🥊)
+        const tdStatus = document.createElement('td');
+        tdStatus.className = 'holdings-status-cell';
+        const statusSelect = document.createElement('select');
+        statusSelect.className = 'holdings-status-select';
+        HOLDINGS_STATUS_OPTIONS.forEach(opt => {
+            const option = document.createElement('option');
+            option.value = opt;
+            option.textContent = opt;
+            if (opt === row['状态']) option.selected = true;
+            statusSelect.appendChild(option);
+        });
+        statusSelect.addEventListener('change', () => updateHoldingsCell(index, '状态', statusSelect.value));
+        tdStatus.appendChild(statusSelect);
+        tr.appendChild(tdStatus);
+
+        // 均价 * 股数 (editable text)
+        const tdDetail = document.createElement('td');
+        tdDetail.className = 'col-holdings-detail';
+        tdDetail.contentEditable = true;
+        tdDetail.textContent = row['均价 * 股数'] || '';
+        tdDetail.addEventListener('blur', () => updateHoldingsCell(index, '均价 * 股数', tdDetail.textContent));
+        tr.appendChild(tdDetail);
+
+        // 是否有警报 (select: ✅ or ❌)
+        const tdAlert = document.createElement('td');
+        const alertVal = row['是否有警报'];
+        tdAlert.className = alertVal === '✅' ? 'holdings-yes' : 'holdings-no';
+        const alertSelect = document.createElement('select');
+        alertSelect.className = 'holdings-yn-select';
+        HOLDINGS_YN_OPTIONS.forEach(opt => {
+            const option = document.createElement('option');
+            option.value = opt;
+            option.textContent = opt;
+            if (opt === alertVal) option.selected = true;
+            alertSelect.appendChild(option);
+        });
+        alertSelect.addEventListener('change', () => updateHoldingsCell(index, '是否有警报', alertSelect.value));
+        tdAlert.appendChild(alertSelect);
+        tr.appendChild(tdAlert);
+
+        // 是否有自动止损 (select: ✅ or ❌)
+        const tdStop = document.createElement('td');
+        const stopVal = row['是否有自动止损'];
+        tdStop.className = stopVal === '✅' ? 'holdings-yes' : 'holdings-no';
+        const stopSelect = document.createElement('select');
+        stopSelect.className = 'holdings-yn-select';
+        HOLDINGS_YN_OPTIONS.forEach(opt => {
+            const option = document.createElement('option');
+            option.value = opt;
+            option.textContent = opt;
+            if (opt === stopVal) option.selected = true;
+            stopSelect.appendChild(option);
+        });
+        stopSelect.addEventListener('change', () => updateHoldingsCell(index, '是否有自动止损', stopSelect.value));
+        tdStop.appendChild(stopSelect);
+        tr.appendChild(tdStop);
+
+        // Delete button
+        const tdActions = document.createElement('td');
+        tdActions.className = 'col-holdings-actions';
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'delete-btn';
+        deleteBtn.innerHTML = '🗑️';
+        deleteBtn.title = 'Delete Row';
+        deleteBtn.addEventListener('click', () => deleteHoldingsRow(index));
+        tdActions.appendChild(deleteBtn);
+        tr.appendChild(tdActions);
+
+        holdingsTableBody.appendChild(tr);
+    });
+}
+
+async function updateHoldingsCell(index, field, value) {
+    const trimmed = value.trim();
+    if (holdingsData[index][field] !== trimmed) {
+        holdingsData[index][field] = trimmed;
+        await saveHoldingsData();
+        renderHoldingsTable();
+    }
+}
+
+async function addHoldingsRow() {
+    holdingsData.push(makeHoldingsRow());
+    await saveHoldingsData();
+    renderHoldingsTable();
+}
+
+async function deleteHoldingsRow(index) {
+    if (confirm('确定删除这行吗？')) {
+        holdingsData.splice(index, 1);
+        await saveHoldingsData();
+        renderHoldingsTable();
+    }
 }
 
 // ================================

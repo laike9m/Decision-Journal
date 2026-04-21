@@ -358,7 +358,7 @@ h2 {
 
 .stat-card {
     background: #f8fafc;
-    padding: 1rem;
+    padding: 0.5rem 1rem;
     border-radius: 8px;
     text-align: center;
     border: 1px solid var(--border-color);
@@ -370,20 +370,160 @@ h2 {
 }
 
 .stat-label {
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     color: var(--text-secondary);
     font-weight: 500;
-    margin-bottom: 0.25rem;
+    margin-bottom: 0.1rem;
 }
 
 .stat-value {
-    font-size: 1.5rem;
+    font-size: 1.25rem;
     font-weight: 700;
 }
 
 .text-success { color: var(--success-color); }
 .text-danger { color: var(--danger-color); }
 .text-primary { color: var(--primary-color); }
+
+/* Holdings Table (持仓表) */
+.holdings-container {
+    margin-bottom: 2rem;
+}
+
+.holdings-container h2 {
+    margin-bottom: 0.75rem;
+}
+
+.holdings-table-wrap {
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    overflow: hidden;
+}
+
+#holdings-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+}
+
+#holdings-table th {
+    background-color: #f1f5f9;
+    font-weight: 600;
+    color: var(--text-secondary);
+    padding: 0.5rem 0.6rem;
+    text-align: center;
+    font-size: 0.8rem;
+    white-space: nowrap;
+}
+
+#holdings-table td {
+    padding: 0.6rem 0.5rem;
+    border-bottom: 1px solid var(--border-color);
+    text-align: center;
+    vertical-align: middle;
+}
+
+#holdings-table tr:last-child td {
+    border-bottom: none;
+}
+
+#holdings-table tr:hover td {
+    background-color: #f8fafc;
+}
+
+.col-holdings-ticker {
+    font-weight: 600;
+    text-align: left !important;
+    min-width: 50px;
+}
+
+#holdings-table td.col-holdings-ticker {
+    text-align: left !important;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.col-holdings-status {
+    width: 40px;
+    min-width: 40px;
+}
+
+.col-holdings-detail {
+    min-width: 100px;
+}
+
+.col-holdings-alert,
+.col-holdings-stoploss {
+    width: 50px;
+    min-width: 50px;
+}
+
+.col-holdings-actions {
+    width: 30px;
+    min-width: 30px;
+}
+
+/* Status emoji cell */
+#holdings-table td.holdings-status-cell {
+    font-size: 1.1rem;
+    cursor: pointer;
+}
+
+/* Yes/No indicator cells */
+#holdings-table td.holdings-yes {
+    color: #059669;
+    font-size: 1.1rem;
+}
+
+#holdings-table td.holdings-no {
+    color: #dc2626;
+    font-size: 1.1rem;
+}
+
+/* Editable cells in holdings */
+#holdings-table td[contenteditable="true"]:focus {
+    background-color: #eef2ff;
+    box-shadow: inset 0 0 0 2px var(--primary-color);
+    border-radius: 4px;
+    outline: none;
+}
+
+.holdings-actions {
+    margin-top: 0.5rem;
+    display: flex;
+    justify-content: flex-start;
+    padding-left: 0.25rem;
+}
+
+/* Status selector popup */
+.holdings-status-select {
+    width: 100%;
+    padding: 0.15rem;
+    border-radius: 4px;
+    border: none;
+    font-family: inherit;
+    font-size: 0.85rem;
+    background: transparent;
+    cursor: pointer;
+    text-align: center;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+}
+
+/* Holdings checkbox-style select */
+.holdings-yn-select {
+    padding: 0.15rem;
+    border-radius: 4px;
+    border: none;
+    font-family: inherit;
+    font-size: 0.85rem;
+    background: transparent;
+    cursor: pointer;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+}
 
 /* Chart */
 .chart-container {
