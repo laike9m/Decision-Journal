@@ -309,9 +309,9 @@ ipcMain.handle('stop-find-in-page', () => {
 
 ipcMain.handle('open-external', (event, url) => {
   if (process.platform === 'darwin' && chromeProfileDir) {
-    const chromePath = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+    // Use `open -g` to launch Chrome in the background without stealing focus
     const escaped = url.replace(/"/g, '\\"');
-    exec(`"${chromePath}" --profile-directory="${chromeProfileDir}" "${escaped}"`);
+    exec(`open -g -a "Google Chrome" "${escaped}" --args --profile-directory="${chromeProfileDir}"`);
     return;
   }
   return shell.openExternal(url);
