@@ -141,17 +141,17 @@ if (window.electronAPI && window.electronAPI.onScoreProgress) {
  * @returns {HTMLTableCellElement}
  */
 function createRefreshCell(index) {
-    const td = document.createElement('td');
-    td.className = 'col-scoring-action';
+  const td = document.createElement('td');
+  td.className = 'col-scoring-action';
 
-    const btn = document.createElement('button');
-    btn.className = 'refresh-btn';
-    btn.innerHTML = '↻';
-    btn.title = 'Refresh';
-    btn.addEventListener('click', () => refreshScoringRow(index));
+  const btn = document.createElement('button');
+  btn.className = 'refresh-btn';
+  btn.innerHTML = '↻';
+  btn.title = 'Refresh';
+  btn.addEventListener('click', () => refreshScoringRow(index));
 
-    td.appendChild(btn);
-    return td;
+  td.appendChild(btn);
+  return td;
 }
 
 /**
@@ -160,68 +160,69 @@ function createRefreshCell(index) {
  * @param {number} index  Row index in scoringData
  */
 async function refreshScoringRow(index) {
-    const ticker = scoringData[index]['代码'];
-    if (!ticker) {
-        showToast('No ticker found in this row.', 'error');
-        return;
-    }
+  const ticker = scoringData[index]['代码'];
+  if (!ticker) {
+    showToast('No ticker found in this row.', 'error');
+    return;
+  }
 
-    const btn = document.querySelectorAll('.refresh-btn')[index];
-    if (btn) {
-        btn.innerHTML = '⌛';
-        btn.disabled = true;
-    }
+  const btn = document.querySelectorAll('.refresh-btn')[index];
+  if (btn) {
+    btn.innerHTML = '⌛';
+    btn.disabled = true;
+  }
 
-    showToast(`Fetching scores for $${ticker}…`, 'info', 0);
+  showToast(`Fetching scores for $${ticker}…`, 'info', 0);
 
-    // Open TradingView chart in the default browser
+  // Open TradingView chart in the default browser
   const tvUrl = `https://cn.tradingview.com/chart/?symbol=${encodeURIComponent(ticker)}`;
-    window.electronAPI.openExternal(tvUrl);
+  window.electronAPI.openExternal(tvUrl);
 
-    try {
-        const results = await window.electronAPI.updateScores(ticker);
-        console.log('Update results:', results);
 
-        // Only overwrite scores that were successfully fetched
-        if (results.zRank !== 'failed') scoringData[index]['Z rank'] = results.zRank;
-        if (results.zHold !== 'failed') scoringData[index]['Z hold'] = results.zHold;
-        if (results.chaikin !== 'failed') scoringData[index]['CK'] = results.chaikin;
-        if (results.sentiment !== 'failed') scoringData[index]['情绪'] = results.sentiment;
-        
-        // Recalculate total score
-        if (typeof calculateScoringTotal === 'function') {
-            scoringData[index]['总分'] = String(calculateScoringTotal(scoringData[index]));
-        }
+  try {
+    const results = await window.electronAPI.updateScores(ticker);
+    console.log('Update results:', results);
 
-        // Update time as well
-        const now = new Date();
-        scoringData[index]['Time'] = `${now.getMonth() + 1}/${now.getDate()}`;
+    // Only overwrite scores that were successfully fetched
+    if (results.zRank !== 'failed') scoringData[index]['Z rank'] = results.zRank;
+    if (results.zHold !== 'failed') scoringData[index]['Z hold'] = results.zHold;
+    if (results.chaikin !== 'failed') scoringData[index]['CK'] = results.chaikin;
+    if (results.sentiment !== 'failed') scoringData[index]['情绪'] = results.sentiment;
 
-        // Move updated row to the top
-        const [row] = scoringData.splice(index, 1);
-        scoringData.unshift(row);
-
-        await saveScoringData();
-        renderScoringTable();
-
-        clearToasts();
-
-        // Build toast message with red "failed" labels
-        const fmtVal = (label, val) => {
-            if (val === 'failed') return `${label}=<span style="color:#e74c3c;font-weight:bold">failed</span>`;
-            return `${label}=${val}`;
-        };
-        const toastMsg = `✅ $${ticker}: ${fmtVal('Z rank', results.zRank)}, ${fmtVal('Z hold', results.zHold)}, ${fmtVal('CK', results.chaikin)}, ${fmtVal('情绪', results.sentiment)}`;
-        const toast = showToast('', 'success', 8000);
-        if (toast) toast.innerHTML = toastMsg;
-    } catch (error) {
-        console.error('Failed to refresh score:', error);
-        clearToasts();
-        showToast(`❌ Failed to refresh $${ticker}: ${error.message}`, 'error', 8000);
-    } finally {
-        if (btn) {
-            btn.innerHTML = '↻';
-            btn.disabled = false;
-        }
+    // Recalculate total score
+    if (typeof calculateScoringTotal === 'function') {
+      scoringData[index]['总分'] = String(calculateScoringTotal(scoringData[index]));
     }
+
+    // Update time as well
+    const now = new Date();
+    scoringData[index]['Time'] = `${now.getMonth() + 1}/${now.getDate()}`;
+
+    // Move updated row to the top
+    const [row] = scoringData.splice(index, 1);
+    scoringData.unshift(row);
+
+    await saveScoringData();
+    renderScoringTable();
+
+    clearToasts();
+
+    // Build toast message with red "failed" labels
+    const fmtVal = (label, val) => {
+      if (val === 'failed') return `${label}=<span style="color:#e74c3c;font-weight:bold">failed</span>`;
+      return `${label}=${val}`;
+    };
+    const toastMsg = `✅ $${ticker}: ${fmtVal('Z rank', results.zRank)}, ${fmtVal('Z hold', results.zHold)}, ${fmtVal('CK', results.chaikin)}, ${fmtVal('情绪', results.sentiment)}`;
+    const toast = showToast('', 'success', 8000);
+    if (toast) toast.innerHTML = toastMsg;
+  } catch (error) {
+    console.error('Failed to refresh score:', error);
+    clearToasts();
+    showToast(`❌ Failed to refresh $${ticker}: ${error.message}`, 'error', 8000);
+  } finally {
+    if (btn) {
+      btn.innerHTML = '↻';
+      btn.disabled = false;
+    }
+  }
 }
