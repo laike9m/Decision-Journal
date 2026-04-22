@@ -2,9 +2,93 @@ const { app, BrowserWindow, ipcMain, dialog, Menu, shell } = require('electron')
 app.name = 'Decision Journal';
 const path = require('path');
 const fs = require('fs');
+const { exec } = require('child_process');
 const { startServer, stopServer, updateScores } = require('./ws_server');
+const os = require('os');
 
 let mainWindow;
+let chromeProfileDir = null; // Cached Chrome profile directory for laike9m@gmail.com
+
+// ─── Chrome Profile Detection ─────────────────────────────────────────
+
+const TARGET_EMAIL = 'laike9m@gmail.com';
+
+/**
+ * Read the app's config.json, preserving all existing fields.
+ */
+function readConfig() {
+  const configPath = path.join(app.getPath('userData'), 'config.json');
+  if (fs.existsSync(configPath)) {
+    try {
+      return JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+    } catch (e) {
+      console.error('Error parsing config:', e);
+    }
+  }
+  return {};
+}
+
+/**
+ * Merge updates into config.json without overwriting unrelated fields.
+ */
+function writeConfig(updates) {
+  const configPath = path.join(app.getPath('userData'), 'config.json');
+  const dir = path.dirname(configPath);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+  const existing = readConfig();
+  const merged = { ...existing, ...updates };
+  fs.writeFileSync(configPath, JSON.stringify(merged, null, 2), 'utf-8');
+}
+
+/**
+ * Scan Chrome profile directories to find the one logged in as TARGET_EMAIL.
+ * Returns the directory name (e.g. "Profile 1") or null if not found.
+ */
+function detectChromeProfileDir() {
+  const chromeDir = path.join(os.homedir(), 'Library', 'Application Support', 'Google', 'Chrome');
+  if (!fs.existsSync(chromeDir)) return null;
+
+  const candidates = fs.readdirSync(chromeDir).filter(name =>
+    name === 'Default' || name.startsWith('Profile ')
+  );
+
+  for (const dir of candidates) {
+    const prefsPath = path.join(chromeDir, dir, 'Preferences');
+    try {
+      const prefs = JSON.parse(fs.readFileSync(prefsPath, 'utf-8'));
+      const accounts = prefs.account_info || [];
+      if (accounts.some(a => a.email === TARGET_EMAIL)) {
+        console.log(`[chrome-profile] Found ${TARGET_EMAIL} in "${dir}"`);
+        return dir;
+      }
+    } catch (e) {
+      // Skip unreadable profiles
+    }
+  }
+
+  console.warn(`[chrome-profile] Could not find profile for ${TARGET_EMAIL}`);
+  return null;
+}
+
+/**
+ * Ensure chromeProfileDir is set: read from config cache, or detect + persist.
+ */
+function ensureChromeProfile() {
+  const config = readConfig();
+  if (config.chromeProfileDir) {
+    chromeProfileDir = config.chromeProfileDir;
+    console.log(`[chrome-profile] Using cached profile: "${chromeProfileDir}"`);
+    return;
+  }
+
+  chromeProfileDir = detectChromeProfileDir();
+  if (chromeProfileDir) {
+    writeConfig({ chromeProfileDir });
+    console.log(`[chrome-profile] Detected and saved profile: "${chromeProfileDir}"`);
+  }
+}
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -29,6 +113,11 @@ app.whenReady().then(() => {
   // Set Dock icon on macOS (needed for dev mode since there's no .app bundle)
   if (process.platform === 'darwin' && app.dock) {
     app.dock.setIcon(path.join(__dirname, '..', 'assets', 'app_icon_dock.png'));
+  }
+
+  // Detect Chrome profile for laike9m@gmail.com (first launch only)
+  if (process.platform === 'darwin') {
+    ensureChromeProfile();
   }
 
   // Start WebSocket server for Chrome extension communication
@@ -110,26 +199,12 @@ ipcMain.handle('get-default-path', () => {
 });
 
 ipcMain.handle('get-config', () => {
-  const configPath = path.join(app.getPath('userData'), 'config.json');
-  if (fs.existsSync(configPath)) {
-    try {
-      return JSON.parse(fs.readFileSync(configPath, 'utf-8'));
-    } catch (e) {
-      console.error('Error parsing config:', e);
-    }
-  }
-  return {};
+  return readConfig();
 });
 
 ipcMain.handle('save-config', (event, csvPath, scoringCsvPath, holdingsCsvPath) => {
   console.log('save-config received csvPath:', csvPath, 'scoringCsvPath:', scoringCsvPath, 'holdingsCsvPath:', holdingsCsvPath);
-  const configPath = path.join(app.getPath('userData'), 'config.json');
-  const dir = path.dirname(configPath);
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
-  }
-  const data = JSON.stringify({ csvPath, scoringCsvPath, holdingsCsvPath }, null, 2);
-  fs.writeFileSync(configPath, data, 'utf-8');
+  writeConfig({ csvPath, scoringCsvPath, holdingsCsvPath });
   return true;
 });
 
@@ -233,5 +308,11 @@ ipcMain.handle('stop-find-in-page', () => {
 });
 
 ipcMain.handle('open-external', (event, url) => {
+  if (process.platform === 'darwin' && chromeProfileDir) {
+    const chromePath = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+    const escaped = url.replace(/"/g, '\\"');
+    exec(`"${chromePath}" --profile-directory="${chromeProfileDir}" "${escaped}"`);
+    return;
+  }
   return shell.openExternal(url);
 });
