@@ -22,6 +22,15 @@
 - 表格需要能够很容易地添加行（点击加号按钮）
 - 所有列应在页面内直接可见，不需要横向滚动
 - 单元格失去焦点（blur）时自动保存
+- 表格上方显示加粗座右铭 **"先记录，再操作"**，与表格内侧左边缘对齐
+
+### 持仓表（Decision Journal 右侧）
+
+- 位于 Decision Journal Tab 右侧统计区域的上方
+- 包含列：**Ticker**, **状态**, **均价 * 股数**, **是否有警报**, **是否有自动止损**
+- `状态` 为下拉选择：🔻 / 💹
+- `是否有警报` 和 `是否有自动止损` 为下拉选择：✅ / ❌
+- 数据存储在独立 CSV 文件中
 
 ### 统计（表格右侧）
 
@@ -47,12 +56,12 @@
 ### 打分表
 
 - 与 Decision Journal 平级的第二个 Tab
-- 包含列：**代码**, **总分**, **Time**, **Follow**, **RS**, **Z rank**, **Z hold**, **Chaikin**, **Call**, **Setup**, **Vol**, **题材**, **坏消息**, **好消息**, **情绪**
-- **总分** 自动计算（Follow + RS + Z rank + Z hold + Chaikin + Call + Setup + Vol + 题材 + 坏消息 + 好消息 + 情绪 之和）
+- 包含列：**代码**, **总分**, **Time**, **Follow**, **Z rank**, **Z hold**, **CK**, **Call**, **Setup**, **机构筹码**, **过往信号**, **Vol**, **题材**, **消息**, **情绪**
+- **总分** 自动计算（除"代码"、"总分"、"Time"以外所有数字列之和）
 - **不需要** 右侧的统计和趋势图（与 Decision Journal 不同）
 - 所有功能与 Decision Journal 表格一致：
   - 单元格内联编辑（contentEditable）
-  - 列标题点击排序
+  - 列标题点击排序（默认按总分从高到低）
   - 添加 / 删除行
   - 自动保存到 CSV
   - 文件监听外部同步
@@ -62,6 +71,7 @@
   - `0`：淡灰色（半透明）
   - `-0.5`：较淡红色 (`#f87171`)
   - `-1`（及更低）：深红色 (`#dc2626`)
+- **Setup=0 特殊处理**：Setup 值为 0 时显示 ❌ 图标，对应行的总分强制使用红色样式
 - **总分颜色**：≥6 绿色背景，≥4 橙色背景，<4 红色背景
 - **表头**：加粗（700），深色文字，0.9rem 字号
 - 数据存储在独立 CSV 文件（默认与 Decision Journal 同目录下 `scoring_table.csv`）
@@ -71,10 +81,13 @@
 
 - 每行有一个 **↻ 刷新按钮**，点击后自动从外部数据源获取最新分数
 - 通过 **WebDataWizard Chrome 扩展** 获取数据（见下方章节）
-- 获取的字段：**Z rank**、**Z hold**、**Chaikin**
+- 获取的字段：**Z rank**、**Z hold**、**CK**、**情绪**
 - 获取过程中按钮变为 ⌛ 状态，完成后恢复
-- **并行获取**：Zacks Rank、Zacks Hold 和 Chaikin 评分均并行获取，减少等待时间
+- **并行获取**：Zacks Rank、Zacks Hold、Chaikin 评分和 StockTwits 情绪均并行获取，减少等待时间
 - 获取完成后自动重新计算总分、更新 Time 字段、保存 CSV 并刷新表格
+- **刷新后行移至顶部**：更新完成后，该行会自动移动到表格第一行
+- **打开 TradingView**：点击刷新按钮时，会在默认浏览器中打开该 Ticker 对应的 TradingView 图表页（`https://cn.tradingview.com/chart/?symbol=TICKER`）
+- **失败容错**：单个数据源获取失败时返回 `'failed'`，不覆盖已有分数；Toast 通知中以红色标注失败字段
 
 ### Toast 通知系统
 
@@ -99,20 +112,32 @@ Decision Journal (Electron)              WebDataWizard (Chrome Extension)
 │  main.js                  │            │  background.js                 │
 │  IPC: update-scores       │            │  (调度 + 引入数据源)             │
 │  IPC: score-progress      │            │         ↕                      │
-│                           │            │  data_sources/*.js             │
-│  update-score.js          │            │  (Zacks Rank/Hold, Chaikin)    │
-│  (Toast 通知 + UI 更新)    │            │  (数据提取)                     │
+│  IPC: open-external       │            │  data_sources/*.js             │
+│                           │            │  (Zacks, Chaikin, StockTwits)  │
+│  update-score.js          │            │  (数据提取)                     │
+│  (Toast 通知 + UI 更新)    │            │                                │
 └───────────────────────────┘            └────────────────────────────────┘
 ```
+
+### 数据源
+
+| 数据源 | 字段 | 评分逻辑 |
+|--------|------|----------|
+| Zacks Rank | Z rank | 1-Strong Buy → +1, 2-Buy → +0.5, 3-Hold → 0, 4-Sell → -0.5, 5-Strong Sell → -0.5 |
+| Zacks Hold (All Trades) | Z hold | 在列表中 → +1，不在列表中 → 0（二元评分） |
+| Chaikin Analytics | CK | Bullish/Very Bullish → +1, Neutral+ → +0.5, Neutral → 0, Neutral- → -0.5, Bearish/Very Bearish → -1 |
+| StockTwits Sentiment | 情绪 | Extremely Bullish/Bullish → +1, Neutral → 0, Bearish/Extremely Bearish → -1 |
 
 ### 工作流程
 
 1. Electron 应用启动时，`ws_server.js` 在 `localhost:18234` 启动 WebSocket 服务器
 2. Chrome 扩展的 offscreen document 自动连接到该服务器（持久连接，不受 Service Worker 生命周期影响）
 3. 用户点击打分表中的 ↻ 刷新按钮
-4. Electron 通过 WebSocket 发送 `{ action: "fetchScores", ticker: "ONDS" }` 请求
-5. 扩展在后台同时打开 Zacks 和 Chaikin 页面，通过内容脚本提取数据
-6. 结果通过 WebSocket 返回给 Electron，更新表格并显示 Toast 通知
+4. 浏览器自动打开 TradingView 图表页
+5. Electron 通过 WebSocket 发送 `{ action: "fetchScores", ticker: "ONDS" }` 请求
+6. 扩展在后台同时打开 Zacks、Chaikin 和 StockTwits 页面，通过内容脚本提取数据
+7. 结果通过 WebSocket 返回给 Electron，更新表格并显示 Toast 通知
+8. 更新后的行移至表格第一行
 
 ### 前置条件
 
@@ -126,5 +151,6 @@ Decision Journal (Electron)              WebDataWizard (Chrome Extension)
 - **窗口控制**:
   - 隐藏原生标题栏（`hiddenInset`），使用自定义拖拽区域。
   - 双击顶部空白区域可最大化/还原窗口（普通全屏逻辑）。
+- **搜索**: 支持 Cmd+F 页面内搜索（Electron `findInPage` API），显示匹配数和上下导航
+- **快捷键**: Cmd+R 默认行为已禁用，防止应用意外重载
 - **清理**: 已移除所有 Streamlit 和 Python 相关的冗余文件。
-
