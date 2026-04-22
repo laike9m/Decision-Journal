@@ -3,7 +3,7 @@ app.name = 'Decision Journal';
 const path = require('path');
 const fs = require('fs');
 const { exec } = require('child_process');
-const { startServer, stopServer, updateScores } = require('./ws_server');
+const { startServer, stopServer, updateScores, openUrlInExtension } = require('./ws_server');
 const os = require('os');
 
 let mainWindow;
@@ -308,6 +308,11 @@ ipcMain.handle('stop-find-in-page', () => {
 });
 
 ipcMain.handle('open-external', (event, url) => {
+  // Try to open via extension first (opens in background tab)
+  if (openUrlInExtension(url)) {
+    return;
+  }
+
   if (process.platform === 'darwin' && chromeProfileDir) {
     // Use `open -g` to launch Chrome in the background without stealing focus
     const escaped = url.replace(/"/g, '\\"');

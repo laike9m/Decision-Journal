@@ -148,4 +148,20 @@ async function updateScores(ticker, userDataPath, onProgress = () => { }) {
     });
 }
 
-module.exports = { startServer, stopServer, updateScores };
+/**
+ * Open a URL in the Chrome extension (background tab).
+ * @param {string} url
+ * @returns {boolean} true if request was sent, false otherwise
+ */
+function openUrlInExtension(url) {
+    if (extensionSocket && extensionSocket.readyState === WebSocket.OPEN) {
+        extensionSocket.send(JSON.stringify({
+            action: 'openUrl',
+            url,
+        }));
+        return true;
+    }
+    return false;
+}
+
+module.exports = { startServer, stopServer, updateScores, openUrlInExtension };
