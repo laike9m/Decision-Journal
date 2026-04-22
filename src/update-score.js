@@ -182,10 +182,11 @@ async function refreshScoringRow(index) {
         const results = await window.electronAPI.updateScores(ticker);
         console.log('Update results:', results);
 
-        scoringData[index]['Z rank'] = results.zRank;
-        scoringData[index]['Z hold'] = results.zHold;
-        scoringData[index]['CK'] = results.chaikin;
-        scoringData[index]['情绪'] = results.sentiment;
+        // Only overwrite scores that were successfully fetched
+        if (results.zRank !== 'failed') scoringData[index]['Z rank'] = results.zRank;
+        if (results.zHold !== 'failed') scoringData[index]['Z hold'] = results.zHold;
+        if (results.chaikin !== 'failed') scoringData[index]['CK'] = results.chaikin;
+        if (results.sentiment !== 'failed') scoringData[index]['情绪'] = results.sentiment;
         
         // Recalculate total score
         if (typeof calculateScoringTotal === 'function') {
@@ -204,11 +205,15 @@ async function refreshScoringRow(index) {
         renderScoringTable();
 
         clearToasts();
-        showToast(
-            `✅ $${ticker}: Z rank=${results.zRank}, Z hold=${results.zHold}, CK=${results.chaikin}, 情绪=${results.sentiment}`,
-            'success',
-            8000
-        );
+
+        // Build toast message with red "failed" labels
+        const fmtVal = (label, val) => {
+            if (val === 'failed') return `${label}=<span style="color:#e74c3c;font-weight:bold">failed</span>`;
+            return `${label}=${val}`;
+        };
+        const toastMsg = `✅ $${ticker}: ${fmtVal('Z rank', results.zRank)}, ${fmtVal('Z hold', results.zHold)}, ${fmtVal('CK', results.chaikin)}, ${fmtVal('情绪', results.sentiment)}`;
+        const toast = showToast('', 'success', 8000);
+        if (toast) toast.innerHTML = toastMsg;
     } catch (error) {
         console.error('Failed to refresh score:', error);
         clearToasts();
