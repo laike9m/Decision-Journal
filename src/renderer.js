@@ -12,7 +12,7 @@ let scoringSort = { field: null, ascending: true };
 // Holdings table state
 let holdingsCsvPath = '';
 let holdingsData = [];
-const HOLDINGS_FIELDS = ['Ticker', '状态', '均价 * 股数', '是否有警报', '是否有自动止损'];
+const HOLDINGS_FIELDS = ['Ticker', '状态', '均价 * 股数', '是否有警报', '自动止损'];
 const HOLDINGS_STATUS_OPTIONS = ['🔻', '💹'];
 const HOLDINGS_YN_OPTIONS = ['✅', '❌'];
 const SCORING_FIELDS = ['代码', '总分', 'Time', 'Follow', 'Z rank', 'Z hold', 'CK', 'Call', 'Setup', '机构筹码', '过往信号', 'Vol', '题材', '消息', '情绪'];
@@ -854,7 +854,7 @@ function makeHoldingsRow(row = {}) {
         '状态': row['状态'] || '🔻',
         '均价 * 股数': row['均价 * 股数'] || '',
         '是否有警报': row['是否有警报'] || '❌',
-        '是否有自动止损': row['是否有自动止损'] || '❌'
+        '自动止损': row['自动止损'] || row['是否有自动止损'] || ''
     };
 }
 
@@ -935,21 +935,12 @@ function renderHoldingsTable() {
         tdAlert.appendChild(alertSelect);
         tr.appendChild(tdAlert);
 
-        // 是否有自动止损 (select: ✅ or ❌)
+        // 自动止损 (editable text)
         const tdStop = document.createElement('td');
-        const stopVal = row['是否有自动止损'];
-        tdStop.className = stopVal === '✅' ? 'holdings-yes' : 'holdings-no';
-        const stopSelect = document.createElement('select');
-        stopSelect.className = 'holdings-yn-select';
-        HOLDINGS_YN_OPTIONS.forEach(opt => {
-            const option = document.createElement('option');
-            option.value = opt;
-            option.textContent = opt;
-            if (opt === stopVal) option.selected = true;
-            stopSelect.appendChild(option);
-        });
-        stopSelect.addEventListener('change', () => updateHoldingsCell(index, '是否有自动止损', stopSelect.value));
-        tdStop.appendChild(stopSelect);
+        tdStop.className = 'col-holdings-stoploss';
+        tdStop.contentEditable = true;
+        tdStop.textContent = row['自动止损'] || '';
+        tdStop.addEventListener('blur', () => updateHoldingsCell(index, '自动止损', tdStop.textContent));
         tr.appendChild(tdStop);
 
         // Delete button

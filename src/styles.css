@@ -195,7 +195,7 @@ h1 {
 /* Layout */
 .main-content {
     display: grid;
-    grid-template-columns: 3fr 1fr;
+    grid-template-columns: 2fr 1fr;
     gap: 2rem;
 }
 
@@ -466,10 +466,13 @@ h2 {
     min-width: 100px;
 }
 
-.col-holdings-alert,
-.col-holdings-stoploss {
+.col-holdings-alert {
     width: 50px;
     min-width: 50px;
+}
+
+.col-holdings-stoploss {
+    white-space: nowrap;
 }
 
 .col-holdings-actions {
