@@ -169,6 +169,20 @@ h1 {
     to { opacity: 1; transform: translateY(0); }
 }
 
+/* Webview Tab */
+.webview-container {
+    display: flex;
+    gap: 1rem;
+    height: calc(100vh - 200px);
+}
+
+.webview-container webview {
+    flex: 1;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    background: white;
+}
+
 /* Tab Motto */
 .tab-motto {
     font-size: 1.15rem;

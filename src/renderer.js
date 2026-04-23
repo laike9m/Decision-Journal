@@ -250,6 +250,26 @@ async function init() {
             settingsModal.classList.remove('active');
         }
     });
+
+    // Webview URL persistence
+    const webviewX = document.getElementById('webview-x');
+    const webviewXhs = document.getElementById('webview-xhs');
+
+    if (webviewX && webviewXhs) {
+        const savedUrlX = localStorage.getItem('lastUrl-x');
+        if (savedUrlX) webviewX.src = savedUrlX;
+
+        const saveUrl = (key, url) => {
+            if (url && url !== 'about:blank') {
+                localStorage.setItem(key, url);
+            }
+        };
+
+        webviewX.addEventListener('did-navigate', (e) => saveUrl('lastUrl-x', e.url));
+        webviewX.addEventListener('did-navigate-in-page', (e) => saveUrl('lastUrl-x', e.url));
+        
+        // Xiaohongshu always loads the default URL specified in HTML, so we don't restore or save it.
+    }
 }
 
 // ================================

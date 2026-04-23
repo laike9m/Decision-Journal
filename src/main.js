@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, Menu, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, Menu, shell, session } = require('electron');
 app.name = 'Decision Journal';
 const path = require('path');
 const fs = require('fs');
@@ -98,7 +98,8 @@ function createWindow() {
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
-      nodeIntegration: false
+      nodeIntegration: false,
+      webviewTag: true
     },
     titleBarStyle: 'hiddenInset' // Premium macOS look
   });
