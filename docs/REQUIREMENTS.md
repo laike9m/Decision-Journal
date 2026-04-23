@@ -49,9 +49,18 @@
 
 ### Tab 导航
 
-- 顶部有两个 Tab：**📓 Decision Journal** 和 **📊 打分表**
+- 顶部有三个 Tab：**📓 Decision Journal**、**📊 打分表** 和 **🌐 社交媒体**
 - 点击 Tab 切换内容区域，带淡入动画
-- 两个 Tab 各自独立的数据源（不同 CSV 文件）
+- 前两个 Tab 各自独立的数据源（不同 CSV 文件），第三个 Tab 加载外部网页
+
+### 社交媒体 Tab
+
+- 与 Decision Journal 和打分表平级的第三个 Tab
+- 采用双列布局（Dual-column layout）
+- 左侧加载 **x.com** (Twitter)，右侧加载 **xhslink.com** (小红书)
+- 使用 Electron 的 `<webview>` 标签实现
+- 支持 Session 持久化 (`partition="persist:social"`)，保留用户的登录 Cookie 状态
+
 
 ### 打分表
 
@@ -151,6 +160,7 @@ Decision Journal (Electron)              WebDataWizard (Chrome Extension)
 - **窗口控制**:
   - 隐藏原生标题栏（`hiddenInset`），使用自定义拖拽区域。
   - 双击顶部空白区域可最大化/还原窗口（普通全屏逻辑）。
+  - 应用启动时默认最大化（非全屏），且使用 `ready-to-show` 事件避免白屏或闪烁。
 - **搜索**: 支持 Cmd+F 页面内搜索（Electron `findInPage` API），显示匹配数和上下导航
 - **快捷键**: Cmd+R 默认行为已禁用，防止应用意外重载
 - **清理**: 已移除所有 Streamlit 和 Python 相关的冗余文件。
