@@ -675,7 +675,7 @@ function renderScoringTable() {
         const tr = document.createElement('tr');
 
         // Refresh button cell (first column, styled to look outside)
-        tr.appendChild(createRefreshCell(index));
+        tr.appendChild(createRefreshCell(index, row['代码']));
 
         SCORING_FIELDS.forEach(field => {
             const td = document.createElement('td');

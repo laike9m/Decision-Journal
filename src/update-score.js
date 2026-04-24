@@ -138,9 +138,10 @@ if (window.electronAPI && window.electronAPI.onScoreProgress) {
  * Create a <td> containing a refresh button for the given row index.
  *
  * @param {number} index  Row index in scoringData
+ * @param {string} ticker  Ticker symbol for stable identification
  * @returns {HTMLTableCellElement}
  */
-function createRefreshCell(index) {
+function createRefreshCell(index, ticker) {
   const td = document.createElement('td');
   td.className = 'col-scoring-action';
 
@@ -148,6 +149,7 @@ function createRefreshCell(index) {
   btn.className = 'refresh-btn';
   btn.innerHTML = '↻';
   btn.title = 'Refresh';
+  if (ticker) btn.setAttribute('data-ticker', ticker);
   btn.addEventListener('click', () => refreshScoringRow(index));
 
   td.appendChild(btn);
@@ -157,7 +159,10 @@ function createRefreshCell(index) {
 /**
  * Handle a refresh-button click for the given row.
  *
- * @param {number} index  Row index in scoringData
+ * Uses the ticker as a stable identifier so that concurrent refreshes
+ * don't corrupt each other when the array is mutated (splice/unshift).
+ *
+ * @param {number} index  Row index in scoringData (used only for initial lookup)
  */
 async function refreshScoringRow(index) {
   const ticker = scoringData[index]['代码'];
@@ -166,7 +171,8 @@ async function refreshScoringRow(index) {
     return;
   }
 
-  const btn = document.querySelectorAll('.refresh-btn')[index];
+  // Use data-attribute to reliably find the button for this ticker
+  const btn = document.querySelector(`.refresh-btn[data-ticker="${ticker}"]`);
   if (btn) {
     btn.innerHTML = '⌛';
     btn.disabled = true;
@@ -183,23 +189,31 @@ async function refreshScoringRow(index) {
     const results = await window.electronAPI.updateScores(ticker);
     console.log('Update results:', results);
 
+    // Re-resolve index by ticker after the async call, since concurrent
+    // refreshes may have spliced/unshifted the array, shifting all indices.
+    const currentIndex = scoringData.findIndex(r => r['代码'] === ticker);
+    if (currentIndex === -1) {
+      showToast(`⚠️ Row for $${ticker} was removed during refresh.`, 'error', 5000);
+      return;
+    }
+
     // Only overwrite scores that were successfully fetched
-    if (results.zRank !== 'failed') scoringData[index]['Z rank'] = results.zRank;
-    if (results.zHold !== 'failed') scoringData[index]['Z hold'] = results.zHold;
-    if (results.chaikin !== 'failed') scoringData[index]['CK'] = results.chaikin;
-    if (results.sentiment !== 'failed') scoringData[index]['情绪'] = results.sentiment;
+    if (results.zRank !== 'failed') scoringData[currentIndex]['Z rank'] = results.zRank;
+    if (results.zHold !== 'failed') scoringData[currentIndex]['Z hold'] = results.zHold;
+    if (results.chaikin !== 'failed') scoringData[currentIndex]['CK'] = results.chaikin;
+    if (results.sentiment !== 'failed') scoringData[currentIndex]['情绪'] = results.sentiment;
 
     // Recalculate total score
     if (typeof calculateScoringTotal === 'function') {
-      scoringData[index]['总分'] = String(calculateScoringTotal(scoringData[index]));
+      scoringData[currentIndex]['总分'] = String(calculateScoringTotal(scoringData[currentIndex]));
     }
 
     // Update time as well
     const now = new Date();
-    scoringData[index]['Time'] = `${now.getMonth() + 1}/${now.getDate()}`;
+    scoringData[currentIndex]['Time'] = `${now.getMonth() + 1}/${now.getDate()}`;
 
     // Move updated row to the top
-    const [row] = scoringData.splice(index, 1);
+    const [row] = scoringData.splice(currentIndex, 1);
     scoringData.unshift(row);
 
     await saveScoringData();
@@ -220,9 +234,11 @@ async function refreshScoringRow(index) {
     clearToasts();
     showToast(`❌ Failed to refresh $${ticker}: ${error.message}`, 'error', 8000);
   } finally {
-    if (btn) {
-      btn.innerHTML = '↻';
-      btn.disabled = false;
+    // Re-find the button by ticker since the DOM may have been re-rendered
+    const finalBtn = document.querySelector(`.refresh-btn[data-ticker="${ticker}"]`);
+    if (finalBtn) {
+      finalBtn.innerHTML = '↻';
+      finalBtn.disabled = false;
     }
   }
 }
