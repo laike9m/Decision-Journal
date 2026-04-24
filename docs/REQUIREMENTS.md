@@ -90,9 +90,9 @@
 
 - 每行有一个 **↻ 刷新按钮**，点击后自动从外部数据源获取最新分数
 - 通过 **WebDataWizard Chrome 扩展** 获取数据（见下方章节）
-- 获取的字段：**Z rank**、**Z hold**、**CK**、**情绪**
+- 获取的字段：**Z rank**、**Z hold**、**CK**、**情绪**、**Call**
 - 获取过程中按钮变为 ⌛ 状态，完成后恢复
-- **并行获取**：Zacks Rank、Zacks Hold、Chaikin 评分和 StockTwits 情绪均并行获取，减少等待时间
+- **并行获取**：Zacks Rank、Zacks Hold、Chaikin 评分、StockTwits 情绪和 Discord Call/Put 均并行获取，减少等待时间
 - 获取完成后自动重新计算总分、更新 Time 字段、保存 CSV 并刷新表格
 - **刷新后行移至顶部**：更新完成后，该行会自动移动到表格第一行
 - **打开 TradingView**：点击刷新按钮时，会在默认浏览器中打开该 Ticker 对应的 TradingView 图表页（`https://cn.tradingview.com/chart/?symbol=TICKER`）
@@ -122,7 +122,8 @@ Decision Journal (Electron)              WebDataWizard (Chrome Extension)
 │  IPC: update-scores       │            │  (调度 + 引入数据源)             │
 │  IPC: score-progress      │            │         ↕                      │
 │  IPC: open-external       │            │  data_sources/*.js             │
-│                           │            │  (Zacks, Chaikin, StockTwits)  │
+│                           │            │  (Zacks, Chaikin, StockTwits,  │
+│                           │            │   Discord)                     │
 │  update-score.js          │            │  (数据提取)                     │
 │  (Toast 通知 + UI 更新)    │            │                                │
 └───────────────────────────┘            └────────────────────────────────┘
@@ -136,6 +137,7 @@ Decision Journal (Electron)              WebDataWizard (Chrome Extension)
 | Zacks Hold (All Trades) | Z hold | 在列表中 → +1，不在列表中 → 0（二元评分） |
 | Chaikin Analytics | CK | Bullish/Very Bullish → +1, Neutral+ → +0.5, Neutral → 0, Neutral- → -0.5, Bearish/Very Bearish → -1 |
 | StockTwits Sentiment | 情绪 | Extremely Bullish/Bullish → +1, Neutral → 0, Bearish/Extremely Bearish → -1 |
+| Discord Unusual Options | Call | 异常期权权利金排行榜图片识别：Call Top 10 → +1, Put Top 10 → -1, Both/None → 0。通过 Discord API 获取频道最新图片，使用 Gemini Vision 提取 Ticker 列表，结果缓存 5 分钟 |
 
 ### 工作流程
 
@@ -144,14 +146,15 @@ Decision Journal (Electron)              WebDataWizard (Chrome Extension)
 3. 用户点击打分表中的 ↻ 刷新按钮
 4. 浏览器自动打开 TradingView 图表页
 5. Electron 通过 WebSocket 发送 `{ action: "fetchScores", ticker: "ONDS" }` 请求
-6. 扩展在后台同时打开 Zacks、Chaikin 和 StockTwits 页面，通过内容脚本提取数据
-7. 结果通过 WebSocket 返回给 Electron，更新表格并显示 Toast 通知
+6. 扩展在后台同时打开 Zacks、Chaikin、StockTwits 页面并通过 Discord API + Gemini Vision 提取数据
+7. 结果（含 Discord Call/Put）通过 WebSocket 返回给 Electron，更新表格并显示 Toast 通知
 8. 更新后的行移至表格第一行
 
 ### 前置条件
 
 - Chrome 浏览器已安装并加载 WebDataWizard 扩展
 - 浏览器已登录 Zacks 和 Chaikin Analytics 账户
+- WebDataWizard 的 `config.env.js` 中配置了 `ENV_DISCORD_TOKEN`、`ENV_DISCORD_CHANNEL_ID` 和 `ENV_GEMINI_API_KEY`
 
 ## UI / 布局
 
