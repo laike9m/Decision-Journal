@@ -131,6 +131,7 @@ async function updateScores(ticker, userDataPath, onProgress = () => { }) {
                     zHold: result.zHold,
                     chaikin: result.chaikin,
                     sentiment: result.sentiment,
+                    discordCall: result.discordCall,
                     raw: result.raw,
                 });
             },

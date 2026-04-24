@@ -203,6 +203,14 @@ async function refreshScoringRow(index) {
     if (results.chaikin !== 'failed') scoringData[currentIndex]['CK'] = results.chaikin;
     if (results.sentiment !== 'failed') scoringData[currentIndex]['情绪'] = results.sentiment;
 
+    // Discord Call/Put → Call column: call=1, put=-1, both/empty=0
+    if (results.discordCall !== undefined && results.discordCall !== 'failed') {
+      let callScore = 0;
+      if (results.discordCall === 'call') callScore = 1;
+      else if (results.discordCall === 'put') callScore = -1;
+      scoringData[currentIndex]['Call'] = String(callScore);
+    }
+
     // Recalculate total score
     if (typeof calculateScoringTotal === 'function') {
       scoringData[currentIndex]['总分'] = String(calculateScoringTotal(scoringData[currentIndex]));
@@ -226,7 +234,8 @@ async function refreshScoringRow(index) {
       if (val === 'failed') return `${label}=<span style="color:#e74c3c;font-weight:bold">failed</span>`;
       return `${label}=${val}`;
     };
-    const toastMsg = `✅ $${ticker}: ${fmtVal('Z rank', results.zRank)}, ${fmtVal('Z hold', results.zHold)}, ${fmtVal('CK', results.chaikin)}, ${fmtVal('情绪', results.sentiment)}`;
+    const discordLabel = results.discordCall || 'none';
+    const toastMsg = `✅ $${ticker}: ${fmtVal('Z rank', results.zRank)}, ${fmtVal('Z hold', results.zHold)}, ${fmtVal('CK', results.chaikin)}, ${fmtVal('情绪', results.sentiment)}, ${fmtVal('Call', discordLabel)}`;
     const toast = showToast('', 'success', 8000);
     if (toast) toast.innerHTML = toastMsg;
   } catch (error) {
