@@ -284,7 +284,7 @@ ipcMain.handle('toggle-fullscreen', () => {
   }
 });
 
-ipcMain.handle('update-scores', async (event, ticker) => {
+ipcMain.handle('update-scores', async (event, ticker, skipCall) => {
   try {
     const userDataPath = app.getPath('userData');
     const onProgress = (msg) => {
@@ -293,7 +293,7 @@ ipcMain.handle('update-scores', async (event, ticker) => {
         mainWindow.webContents.send('score-progress', msg);
       }
     };
-    const results = await updateScores(ticker, userDataPath, onProgress);
+    const results = await updateScores(ticker, userDataPath, onProgress, skipCall);
     return results;
   } catch (error) {
     console.error('Error updating scores:', error);

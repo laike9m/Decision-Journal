@@ -166,6 +166,9 @@ function createRefreshCell(index, ticker) {
  */
 async function refreshScoringRow(index) {
   const ticker = scoringData[index]['代码'];
+  const currentCall = scoringData[index]['Call'];
+  const skipCall = currentCall && currentCall !== '0';
+
   if (!ticker) {
     showToast('No ticker found in this row.', 'error');
     return;
@@ -186,7 +189,7 @@ async function refreshScoringRow(index) {
 
 
   try {
-    const results = await window.electronAPI.updateScores(ticker);
+    const results = await window.electronAPI.updateScores(ticker, skipCall);
     console.log('Update results:', results);
 
     // Re-resolve index by ticker after the async call, since concurrent
@@ -234,7 +237,7 @@ async function refreshScoringRow(index) {
       if (val === 'failed') return `${label}=<span style="color:#e74c3c;font-weight:bold">failed</span>`;
       return `${label}=${val}`;
     };
-    const discordLabel = results.discordCall || 'none';
+    const discordLabel = results.discordCall === undefined ? 'skipped' : (results.discordCall || 'none');
     const toastMsg = `✅ $${ticker}: ${fmtVal('Z rank', results.zRank)}, ${fmtVal('Z hold', results.zHold)}, ${fmtVal('CK', results.chaikin)}, ${fmtVal('情绪', results.sentiment)}, ${fmtVal('Call', discordLabel)}`;
     const toast = showToast('', 'success', 8000);
     if (toast) toast.innerHTML = toastMsg;

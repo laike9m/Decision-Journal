@@ -15,6 +15,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   stopFindInPage: () => ipcRenderer.invoke('stop-find-in-page'),
   onFoundInPageResults: (callback) => ipcRenderer.on('found-in-page-results', (event, result) => callback(result)),
   onScoreProgress: (callback) => ipcRenderer.on('score-progress', (event, msg) => callback(msg)),
-  updateScores: (ticker) => ipcRenderer.invoke('update-scores', ticker),
+  updateScores: (ticker, skipCall) => ipcRenderer.invoke('update-scores', ticker, skipCall),
   openExternal: (url) => ipcRenderer.invoke('open-external', url)
 });

@@ -106,7 +106,7 @@ function stopServer() {
  * @param {(msg: string) => void} onProgress
  * @returns {Promise<{ticker, zRank, zHold, chaikin, sentiment, raw}>}
  */
-async function updateScores(ticker, userDataPath, onProgress = () => { }) {
+async function updateScores(ticker, userDataPath, onProgress = () => { }, skipCall = false) {
     if (!extensionSocket || extensionSocket.readyState !== WebSocket.OPEN) {
         throw new Error(
             'WebDataWizard extension is not connected. ' +
@@ -145,6 +145,7 @@ async function updateScores(ticker, userDataPath, onProgress = () => { }) {
         extensionSocket.send(JSON.stringify({
             action: 'fetchScores',
             ticker,
+            skipCall,
         }));
     });
 }
