@@ -16,5 +16,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onFoundInPageResults: (callback) => ipcRenderer.on('found-in-page-results', (event, result) => callback(result)),
   onScoreProgress: (callback) => ipcRenderer.on('score-progress', (event, msg) => callback(msg)),
   updateScores: (ticker, skipCall) => ipcRenderer.invoke('update-scores', ticker, skipCall),
-  openExternal: (url) => ipcRenderer.invoke('open-external', url)
+  openExternal: (url) => ipcRenderer.invoke('open-external', url),
+  fetchStockPrice: (ticker) => ipcRenderer.invoke('fetch-stock-price', ticker)
 });

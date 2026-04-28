@@ -328,3 +328,32 @@ ipcMain.handle('open-external', (event, url) => {
   }
   return shell.openExternal(url);
 });
+
+// Fetch current stock price from Yahoo Finance
+ipcMain.handle('fetch-stock-price', async (event, ticker) => {
+  try {
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=1d&range=1d`;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
+    const response = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        'User-Agent': 'Mozilla/5.0'
+      }
+    });
+    clearTimeout(timeout);
+    if (!response.ok) {
+      console.error(`[fetch-stock-price] HTTP ${response.status} for ${ticker}`);
+      return null;
+    }
+    const data = await response.json();
+    const meta = data?.chart?.result?.[0]?.meta;
+    if (meta && meta.regularMarketPrice != null) {
+      return meta.regularMarketPrice;
+    }
+    return null;
+  } catch (error) {
+    console.error(`[fetch-stock-price] Error for ${ticker}:`, error.message);
+    return null;
+  }
+});

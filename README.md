@@ -29,6 +29,7 @@ A desktop application for tracking trading decisions.
 - **Auto-save**: Automatically saves to CSV on edit.
 - **Stats**: Real-time summary of compliance.
 - **Chart**: Interactive trend chart.
+- **Holdings Tracker**: Real-time stock prices via Yahoo Finance with PnL calculation.
 - **Premium UI**: Modern aesthetic with glassmorphism touches.
 
 ## Project Structure

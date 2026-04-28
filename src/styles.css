@@ -404,8 +404,48 @@ h2 {
     margin-bottom: 2rem;
 }
 
-.holdings-container h2 {
+.holdings-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
     margin-bottom: 0.75rem;
+}
+
+.holdings-header h2 {
+    margin-bottom: 0;
+}
+
+.holdings-refresh-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #94a3b8;
+    font-size: 1.2rem;
+    padding: 0.2rem 0.35rem;
+    border-radius: 4px;
+    transition: color 0.2s, background-color 0.2s, transform 0.3s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.holdings-refresh-btn:hover {
+    color: var(--primary-color);
+    background-color: #eef2ff;
+}
+
+.holdings-refresh-btn:active {
+    transform: rotate(180deg);
+}
+
+.holdings-refresh-btn.spinning {
+    animation: holdingsRefreshSpin 0.8s linear infinite;
+    color: var(--primary-color);
+}
+
+@keyframes holdingsRefreshSpin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
 }
 
 .holdings-table-wrap {
@@ -447,23 +487,46 @@ h2 {
 
 .col-holdings-ticker {
     font-weight: 600;
-    text-align: left !important;
     min-width: 50px;
 }
 
 #holdings-table td.col-holdings-ticker {
-    text-align: left !important;
     font-weight: 600;
     font-size: 0.9rem;
 }
 
-.col-holdings-status {
-    width: 40px;
-    min-width: 40px;
+.col-holdings-price {
+    width: 60px;
+    min-width: 55px;
+    font-variant-numeric: tabular-nums;
+}
+
+#holdings-table td.col-holdings-price {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--text-color);
 }
 
 .col-holdings-detail {
     min-width: 100px;
+}
+
+.col-holdings-pnl {
+    min-width: 90px;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+#holdings-table td.holdings-pnl-positive {
+    color: #059669;
+    font-weight: 600;
+    font-size: 0.85rem;
+}
+
+#holdings-table td.holdings-pnl-negative {
+    color: #dc2626;
+    font-weight: 600;
+    font-size: 0.85rem;
 }
 
 .col-holdings-alert {

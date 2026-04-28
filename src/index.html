@@ -72,15 +72,19 @@
                 <section class="sidebar-section">
                     <!-- Holdings Table (持仓表) -->
                     <div class="holdings-container">
-                        <h2>当前持仓</h2>
+                        <div class="holdings-header">
+                            <h2>当前持仓</h2>
+                            <button id="refresh-holdings-btn" class="holdings-refresh-btn" title="刷新股价">↻</button>
+                        </div>
                         <div class="holdings-table-wrap">
                             <table id="holdings-table">
                                 <thead>
                                     <tr>
                                         <th class="col-holdings-ticker">Ticker</th>
-                                        <th class="col-holdings-status">状态</th>
+                                        <th class="col-holdings-price">股价</th>
                                         <th class="col-holdings-detail">均价 * 股数</th>
-                                        <th class="col-holdings-alert">是否有警报</th>
+                                        <th class="col-holdings-pnl">PnL</th>
+                                        <th class="col-holdings-alert">警报</th>
                                         <th class="col-holdings-stoploss">自动止损</th>
                                         <th class="col-holdings-actions"></th>
                                     </tr>

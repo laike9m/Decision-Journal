@@ -30,8 +30,7 @@ let holdingsCsvPath = '';
 let holdingsData = [];
 
 // Field definitions (shared constants)
-const HOLDINGS_FIELDS = ['Ticker', '状态', '均价 * 股数', '是否有警报', '自动止损'];
-const HOLDINGS_STATUS_OPTIONS = ['🔻', '💹'];
+const HOLDINGS_FIELDS = ['Ticker', '股价', '均价 * 股数', 'PnL', '警报', '自动止损'];
 const HOLDINGS_YN_OPTIONS = ['✅', '❌'];
 const SCORING_FIELDS = ['代码', '总分', 'Time', 'Follow', 'Z rank', 'Z hold', 'CK', 'Call', 'Setup', '机构筹码', '过往信号', 'Vol', '题材', '消息', '情绪'];
 const SCORING_NUM_FIELDS = ['总分', 'Follow', 'Z rank', 'Z hold', 'CK', 'Call', 'Setup', '机构筹码', '过往信号', 'Vol', '题材', '消息', '情绪'];
@@ -59,6 +58,7 @@ let scoringBrowseFileBtn;
 // Holdings DOM
 let holdingsTableBody;
 let addHoldingsRowBtn;
+let refreshHoldingsBtn;
 let holdingsCsvPathInput;
 let holdingsBrowseFileBtn;
 
@@ -86,6 +86,7 @@ async function init() {
     // Holdings DOM
     holdingsTableBody = document.getElementById('holdings-table-body');
     addHoldingsRowBtn = document.getElementById('add-holdings-row-btn');
+    refreshHoldingsBtn = document.getElementById('refresh-holdings-btn');
     holdingsCsvPathInput = document.getElementById('holdings-csv-path-input');
     holdingsBrowseFileBtn = document.getElementById('holdings-browse-file-btn');
 
@@ -120,6 +121,7 @@ async function init() {
     // Scoring event listeners
     scoringAddRowBtn.addEventListener('click', addScoringRow);
     addHoldingsRowBtn.addEventListener('click', addHoldingsRow);
+    refreshHoldingsBtn.addEventListener('click', refreshAllHoldingsPrices);
 
     scoringBrowseFileBtn.addEventListener('click', async () => {
         const newPath = await window.electronAPI.selectFile();

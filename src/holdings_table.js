@@ -5,20 +5,22 @@
 //
 // Globals consumed (set by renderer.js before this runs):
 //   holdingsData, holdingsCsvPath, holdingsTableBody,
-//   HOLDINGS_FIELDS, HOLDINGS_STATUS_OPTIONS, HOLDINGS_YN_OPTIONS
+//   HOLDINGS_FIELDS, HOLDINGS_YN_OPTIONS
 //
 // Globals produced:
 //   makeHoldingsRow, loadHoldingsData, saveHoldingsData,
-//   renderHoldingsTable, updateHoldingsCell, addHoldingsRow, deleteHoldingsRow
+//   renderHoldingsTable, updateHoldingsCell, addHoldingsRow, deleteHoldingsRow,
+//   refreshAllHoldingsPrices
 
 // ─── Row Factory ──────────────────────────────────────────────────────
 
 function makeHoldingsRow(row = {}) {
     return {
         'Ticker': row['Ticker'] || '',
-        '状态': row['状态'] || '🔻',
+        '股价': row['股价'] || row['状态'] || '',
         '均价 * 股数': row['均价 * 股数'] || '',
-        '是否有警报': row['是否有警报'] || '❌',
+        'PnL': row['PnL'] || '',
+        '警报': row['警报'] || row['是否有警报'] || '❌',
         '自动止损': row['自动止损'] || row['是否有自动止损'] || ''
     };
 }
@@ -49,6 +51,38 @@ async function saveHoldingsData() {
     await window.electronAPI.writeFile(holdingsCsvPath, csv);
 }
 
+// ─── PnL Calculation ──────────────────────────────────────────────────
+
+/**
+ * Parse the "均价 * 股数" field to extract avgPrice and quantity.
+ * Expected format: "150.2 * 100" → { avgPrice: 150.2, qty: 100 }
+ * Returns null if parsing fails.
+ */
+function parseAvgPriceQty(detail) {
+    if (!detail || typeof detail !== 'string') return null;
+    const parts = detail.split('*').map(s => s.trim());
+    if (parts.length !== 2) return null;
+    const avgPrice = parseFloat(parts[0]);
+    const qty = parseFloat(parts[1]);
+    if (isNaN(avgPrice) || isNaN(qty) || qty === 0) return null;
+    return { avgPrice, qty };
+}
+
+/**
+ * Calculate PnL given current price and the "均价 * 股数" field.
+ * Returns { value: number, percent: number, display: string } or null.
+ */
+function calculatePnL(currentPrice, detail) {
+    const parsed = parseAvgPriceQty(detail);
+    if (!parsed || !currentPrice) return null;
+    const { avgPrice, qty } = parsed;
+    const pnl = (currentPrice - avgPrice) * qty;
+    const pctChange = ((currentPrice - avgPrice) / avgPrice) * 100;
+    const sign = pnl >= 0 ? '+' : '';
+    const display = `${sign}${pnl.toFixed(0)} (${sign}${pctChange.toFixed(1)}%)`;
+    return { value: pnl, percent: pctChange, display };
+}
+
 // ─── Render Table ─────────────────────────────────────────────────────
 
 function renderHoldingsTable() {
@@ -65,21 +99,16 @@ function renderHoldingsTable() {
         tdTicker.addEventListener('blur', () => updateHoldingsCell(index, 'Ticker', tdTicker.textContent));
         tr.appendChild(tdTicker);
 
-        // 状态 (select: 🔻 or 🥊)
-        const tdStatus = document.createElement('td');
-        tdStatus.className = 'holdings-status-cell';
-        const statusSelect = document.createElement('select');
-        statusSelect.className = 'holdings-status-select';
-        HOLDINGS_STATUS_OPTIONS.forEach(opt => {
-            const option = document.createElement('option');
-            option.value = opt;
-            option.textContent = opt;
-            if (opt === row['状态']) option.selected = true;
-            statusSelect.appendChild(option);
-        });
-        statusSelect.addEventListener('change', () => updateHoldingsCell(index, '状态', statusSelect.value));
-        tdStatus.appendChild(statusSelect);
-        tr.appendChild(tdStatus);
+        // 股价 (read-only, populated by refresh)
+        const tdPrice = document.createElement('td');
+        tdPrice.className = 'col-holdings-price';
+        const priceVal = row['股价'];
+        if (priceVal && priceVal !== '' && !isNaN(parseFloat(priceVal))) {
+            tdPrice.textContent = parseFloat(priceVal).toFixed(2);
+        } else {
+            tdPrice.textContent = priceVal || '—';
+        }
+        tr.appendChild(tdPrice);
 
         // 均价 * 股数 (editable text)
         const tdDetail = document.createElement('td');
@@ -89,9 +118,22 @@ function renderHoldingsTable() {
         tdDetail.addEventListener('blur', () => updateHoldingsCell(index, '均价 * 股数', tdDetail.textContent));
         tr.appendChild(tdDetail);
 
-        // 是否有警报 (select: ✅ or ❌)
+        // PnL (calculated, read-only)
+        const tdPnl = document.createElement('td');
+        tdPnl.className = 'col-holdings-pnl';
+        const currentPrice = parseFloat(row['股价']);
+        const pnlResult = calculatePnL(currentPrice, row['均价 * 股数']);
+        if (pnlResult) {
+            tdPnl.textContent = pnlResult.display;
+            tdPnl.classList.add(pnlResult.value >= 0 ? 'holdings-pnl-positive' : 'holdings-pnl-negative');
+        } else {
+            tdPnl.textContent = '—';
+        }
+        tr.appendChild(tdPnl);
+
+        // 警报 (select: ✅ or ❌)
         const tdAlert = document.createElement('td');
-        const alertVal = row['是否有警报'];
+        const alertVal = row['警报'];
         tdAlert.className = alertVal === '✅' ? 'holdings-yes' : 'holdings-no';
         const alertSelect = document.createElement('select');
         alertSelect.className = 'holdings-yn-select';
@@ -102,7 +144,7 @@ function renderHoldingsTable() {
             if (opt === alertVal) option.selected = true;
             alertSelect.appendChild(option);
         });
-        alertSelect.addEventListener('change', () => updateHoldingsCell(index, '是否有警报', alertSelect.value));
+        alertSelect.addEventListener('change', () => updateHoldingsCell(index, '警报', alertSelect.value));
         tdAlert.appendChild(alertSelect);
         tr.appendChild(tdAlert);
 
@@ -135,9 +177,73 @@ async function updateHoldingsCell(index, field, value) {
     const trimmed = value.trim();
     if (holdingsData[index][field] !== trimmed) {
         holdingsData[index][field] = trimmed;
+
+        // Recalculate PnL when 均价 * 股数 changes and we have a price
+        if (field === '均价 * 股数') {
+            const currentPrice = parseFloat(holdingsData[index]['股价']);
+            const pnlResult = calculatePnL(currentPrice, trimmed);
+            holdingsData[index]['PnL'] = pnlResult ? pnlResult.display : '';
+        }
+
         await saveHoldingsData();
         renderHoldingsTable();
     }
+}
+
+// ─── Refresh Stock Prices ─────────────────────────────────────────────
+
+/**
+ * Fetch current prices for all tickers in parallel and update the table.
+ */
+async function refreshAllHoldingsPrices() {
+    const btn = refreshHoldingsBtn;
+    btn.classList.add('spinning');
+    btn.disabled = true;
+
+    const tickers = holdingsData
+        .map((row, i) => ({ ticker: row['Ticker']?.trim(), index: i }))
+        .filter(t => t.ticker);
+
+    if (tickers.length === 0) {
+        btn.classList.remove('spinning');
+        btn.disabled = false;
+        return;
+    }
+
+    // Fetch all prices in parallel
+    const results = await Promise.allSettled(
+        tickers.map(async ({ ticker, index }) => {
+            const price = await window.electronAPI.fetchStockPrice(ticker);
+            return { index, ticker, price };
+        })
+    );
+
+    let changed = false;
+    for (const result of results) {
+        if (result.status === 'fulfilled' && result.value.price != null) {
+            const { index, price } = result.value;
+            const priceStr = price.toString();
+            if (holdingsData[index]['股价'] !== priceStr) {
+                holdingsData[index]['股价'] = priceStr;
+                changed = true;
+            }
+            // Recalculate PnL
+            const pnlResult = calculatePnL(price, holdingsData[index]['均价 * 股数']);
+            const pnlStr = pnlResult ? pnlResult.display : '';
+            if (holdingsData[index]['PnL'] !== pnlStr) {
+                holdingsData[index]['PnL'] = pnlStr;
+                changed = true;
+            }
+        }
+    }
+
+    if (changed) {
+        await saveHoldingsData();
+    }
+    renderHoldingsTable();
+
+    btn.classList.remove('spinning');
+    btn.disabled = false;
 }
 
 // ─── Add / Delete ─────────────────────────────────────────────────────
