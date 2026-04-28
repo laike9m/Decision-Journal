@@ -1,4 +1,4 @@
-const { calculateStats, calculateChartData } = require('../src/journal_table.js');
+const { calculateStats, calculateChartData } = require('../src/tables/journal_table.js');
 
 function testCalculateStats() {
     console.log('Running testCalculateStats...');

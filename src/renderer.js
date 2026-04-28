@@ -6,12 +6,12 @@
 // watching, and find-in-page.
 //
 // Table-specific rendering lives in:
-//   journal_table.js  — Decision Journal
-//   scoring_table.js  — 打分表
-//   holdings_table.js — 持仓表
+//   tables/journal_table.js  — Decision Journal
+//   tables/scoring_table.js  — 打分表
+//   tables/holdings_table.js — 持仓表
 //
 // Score refresh UI lives in:
-//   update-score.js   — ↻ button & toast notifications
+//   tables/update_score.js   — ↻ button & toast notifications
 
 // ─── State ────────────────────────────────────────────────────────────
 

@@ -206,7 +206,7 @@ async function addScoringRow() {
     renderScoringTable();
 }
 
-// refreshScoringRow is defined in update-score.js
+// refreshScoringRow is defined in update_score.js
 
 async function deleteScoringRow(index) {
     if (confirm('确定删除这行吗？')) {
