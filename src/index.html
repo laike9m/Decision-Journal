@@ -216,9 +216,20 @@
     <!-- Toast Notification Container -->
     <div id="toast-container"></div>
 
-    <!-- Scoring Refresh Module -->
+    <!-- Scoring Refresh Module (defines createRefreshCell, showToast, etc.) -->
     <script src="update-score.js"></script>
-    <!-- Renderer Script -->
+    <!-- Renderer Script (shared state, DOM refs, tab switching, file watching, find) -->
     <script src="renderer.js"></script>
+    <!-- Table Modules (each declares globals consumed by renderer.js init) -->
+    <script src="journal_table.js"></script>
+    <script src="scoring_table.js"></script>
+    <script src="holdings_table.js"></script>
+    <!-- Bootstrap: kick off init after all modules are loaded -->
+    <script>
+        if (typeof document !== 'undefined') {
+            initFind();
+            init();
+        }
+    </script>
 </body>
 </html>

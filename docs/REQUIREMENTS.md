@@ -4,6 +4,7 @@
 
 - **框架**: Electron (Main + Renderer 进程)
 - **前端**: 原生 HTML5 / CSS3 / JavaScript (Vanilla JS)
+- **模块化**: 每张表格的渲染逻辑独立在单独的 JS 文件中（`journal_table.js`、`scoring_table.js`、`holdings_table.js`），`renderer.js` 负责共享状态、初始化、Tab 切换、文件监听和搜索功能
 - **图表**: Chart.js
 - **解析器**: PapaParse (用于 CSV 解析)
 - **通信**: ws (WebSocket，用于与 Chrome 扩展通信)

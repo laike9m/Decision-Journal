@@ -5,7 +5,7 @@
   "description": "A desktop application for tracking decisions.",
   "main": "src/main.js",
   "scripts": {
-    "start": "electron .",
+    "start": "electron . 2>&1 | grep -v -E '(interface_endpoint_client|sysctlbyname|GUEST_VIEW_MANAGER_CALL|TSM AdjustCapsLock|error messaging the mach port|service_worker_storage|quota_database|sandbox_origin_database)'",
     "build": "electron-builder",
     "postinstall": "node scripts/patch-electron.js"
   },

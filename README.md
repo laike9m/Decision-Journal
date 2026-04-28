@@ -30,3 +30,19 @@ A desktop application for tracking trading decisions.
 - **Stats**: Real-time summary of compliance.
 - **Chart**: Interactive trend chart.
 - **Premium UI**: Modern aesthetic with glassmorphism touches.
+
+## Project Structure
+
+```
+src/
+├── main.js             # Electron main process
+├── preload.js          # Preload script (IPC bridge)
+├── renderer.js         # Shared state, init, tab switching, file watching, find
+├── journal_table.js    # Decision Journal table rendering & CRUD
+├── scoring_table.js    # 打分表 table rendering & CRUD
+├── holdings_table.js   # 持仓表 table rendering & CRUD
+├── update-score.js     # Score refresh button & toast notifications
+├── ws_server.js        # WebSocket server for Chrome extension comm
+├── index.html          # Main HTML
+└── styles.css          # Styles
+```
