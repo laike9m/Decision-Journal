@@ -278,10 +278,25 @@ td[contenteditable="true"]:focus {
 .date-picker {
     border: 1px solid var(--border-color);
     border-radius: 4px;
-    padding: 0.25rem;
+    padding: 0.25rem 0.5rem;
     font-family: inherit;
     font-size: inherit;
     background: transparent;
+    position: relative;
+    width: 7.5em;
+}
+
+.date-picker::-webkit-datetime-edit {
+    padding: 0;
+}
+
+.date-picker::-webkit-calendar-picker-indicator {
+    opacity: 0;
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    cursor: pointer;
 }
 
 .date-picker:focus {
